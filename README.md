@@ -51,14 +51,22 @@ result = planner.retrieve(query="...", top_k=10, budget_tokens=4000)
 from hubmesh import Planner
 from hubmesh.adapters import QdrantStore
 
-# Local: Qdrant in-memory or on-disk
 store = QdrantStore.from_documents(docs)                          # in-memory
 store = QdrantStore.from_documents(docs, path="./qdrant_data")    # on-disk
-# Remote
-store = QdrantStore.from_documents(docs, url="http://localhost:6333")
+store = QdrantStore.from_documents(docs, url="http://localhost:6333")  # remote
 
 planner = Planner(store=store, embed=embed)
 result = planner.retrieve(query="...", top_k=10)
+```
+
+### Chroma adapter
+
+```python
+from hubmesh.adapters import ChromaStore
+
+store = ChromaStore.from_documents(docs)                          # ephemeral
+store = ChromaStore.from_documents(docs, persist_directory="./chroma_data")
+store = ChromaStore.from_documents(docs, host="localhost", port=8000)
 ```
 
 ### Multi-hop / KG mode
@@ -73,14 +81,55 @@ kg = build_entity_kg(docs, nlp=nlp)
 planner = Planner(store=store, kg=kg, nlp=nlp)
 result = planner.retrieve(query="Where was the founder of the company that bought Slack born?",
                           top_k=10, budget_tokens=4000)
+
+# RetrievalResult includes reasoning paths showing why each doc was returned
+for path in result.reasoning:
+    print(f"  score={path.score:.3f}  {' → '.join(path.node_ids)}")
+```
+
+### LLM-extracted KG (richer than spaCy)
+
+```python
+from hubmesh.kg_llm import build_entity_kg_llm
+
+def llm(prompt):  # provider-agnostic — bring your own
+    return your_llm_call(prompt)
+
+kg = build_entity_kg_llm(docs, llm=llm, cache_path="kg_cache.json")
+planner = Planner(store=store, kg=kg)
+```
+
+### Better entity linking
+
+```python
+from hubmesh.kg import build_entity_kg
+from hubmesh.entity_linker import EmbeddingLinker, make_st_embedder
+
+# Cluster surface variations: "United States" / "U.S." / "USA" → one entity
+linker = EmbeddingLinker(embed=make_st_embedder(), threshold=0.82)
+kg = build_entity_kg(docs, linker=linker)
+```
+
+### Chunking long documents
+
+```python
+from hubmesh import chunk_by_sentences, chunk_documents
+
+chunks = chunk_documents(
+    [{"id": "doc1", "text": long_text}, ...],
+    strategy="sentences", target_tokens=200,
+)
+# Then embed chunks and index normally
 ```
 
 ## Installation
 
 ```bash
 pip install hubmesh                   # core
-pip install "hubmesh[qdrant]"         # with Qdrant adapter
-pip install "hubmesh[kg]"             # with entity-linked KG support (spaCy)
+pip install "hubmesh[qdrant]"         # Qdrant adapter
+pip install "hubmesh[chroma]"         # Chroma adapter
+pip install "hubmesh[kg]"             # entity-linked KG (spaCy)
+pip install "hubmesh[linker]"         # embedding-based entity linker
 pip install "hubmesh[all]"            # everything
 python -m spacy download en_core_web_sm   # required for KG mode
 ```
@@ -130,9 +179,12 @@ python benchmarks/profile_query.py        # latency profile
 
 ## Status
 
-Pre-alpha. Core algorithms implemented and validated; in-memory adapter only;
-production adapters (Pinecone/Qdrant/Weaviate/pgvector) and harder multi-hop
-benchmarks (MuSiQue, 2WikiMultiHopQA) on the roadmap.
+Pre-alpha (v0.1.0). Core algorithms implemented and validated; adapters for
+in-memory, Qdrant, and Chroma; entity-linked KG with both spaCy NER and
+LLM-based extraction; document chunking; reasoning-path explanation;
+PPR-cache latency optimisation. Pinecone / pgvector / Weaviate adapters
+and additional multi-hop benchmarks are tracked as
+[good first issues](https://github.com/DemigodDSK/hubmesh/issues).
 
 ## Acknowledgements
 

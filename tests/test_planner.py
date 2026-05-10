@@ -87,3 +87,87 @@ def test_composite_score_no_nan_on_uniform_input():
     out = composite_score(R, S, C, ScoringWeights())
     assert all(np.isfinite(v) for v in out.values())
     assert abs(out["a"] - out["b"]) < 1e-9
+
+
+def test_chunk_by_sentences_round_trip():
+    from hubmesh import chunk_by_sentences
+    text = ("Sentence one. Sentence two. Sentence three is a bit longer. "
+            "Sentence four. Sentence five! Sentence six? Sentence seven.")
+    chunks = chunk_by_sentences("doc1", text, target_tokens=10,
+                                overlap_sentences=1)
+    assert len(chunks) >= 2
+    assert all(c.metadata["source_id"] == "doc1" for c in chunks)
+    # chunks should cover most of the text (with overlap, total length > original)
+    total_chars = sum(len(c.text) for c in chunks)
+    assert total_chars >= len(text)
+    # ids are unique and well-formed
+    assert len(set(c.id for c in chunks)) == len(chunks)
+    assert chunks[0].id.startswith("doc1#chunk")
+
+
+def test_kg_llm_with_mock_llm():
+    """build_entity_kg_llm should accept any callable LLM and produce a
+    valid EntityKG. We use a mock LLM that returns canned triples."""
+    from hubmesh.kg_llm import build_entity_kg_llm
+    docs = [
+        type("D", (), {"id": "d1", "text": "Alice founded Acme.", "metadata": {}})(),
+        type("D", (), {"id": "d2", "text": "Acme is based in Boston.", "metadata": {}})(),
+    ]
+    canned = {
+        "Alice founded Acme.": '{"triples": [["Alice", "founded", "Acme"]]}',
+        "Acme is based in Boston.": '{"triples": [["Acme", "based in", "Boston"]]}',
+    }
+
+    def mock_llm(prompt):
+        for k, v in canned.items():
+            if k in prompt:
+                return v
+        return '{"triples": []}'
+
+    kg = build_entity_kg_llm(docs, llm=mock_llm)
+    nodes = list(kg.graph.nodes)
+    assert "ent:alice" in nodes
+    assert "ent:acme" in nodes
+    assert "ent:boston" in nodes
+    assert "doc:d1" in nodes
+    assert "doc:d2" in nodes
+    # Entity-entity edges from triples
+    assert kg.graph.has_edge("ent:alice", "ent:acme")
+    assert kg.graph.has_edge("ent:acme", "ent:boston")
+    # Predicate stored on the edge
+    preds = kg.graph["ent:alice"]["ent:acme"].get("predicates", [])
+    assert "founded" in preds
+
+
+def test_chunk_by_chars_handles_short_text():
+    from hubmesh import chunk_by_chars
+    chunks = chunk_by_chars("d", "short", chunk_chars=100)
+    assert len(chunks) == 1
+    assert chunks[0].text == "short"
+    assert chunks[0].metadata["chunk_idx"] == 0
+
+
+def test_reasoning_paths_built_from_seeds_to_docs():
+    """build_reasoning_paths should return non-empty paths from seed
+    nodes to retrieved docs in a small bipartite KG."""
+    import networkx as nx
+    from hubmesh.paths import build_reasoning_paths
+    G = nx.Graph()
+    G.add_node("ent:alice", kind="entity")
+    G.add_node("ent:bob",   kind="entity")
+    G.add_node("doc:p1",    kind="doc")
+    G.add_node("doc:p2",    kind="doc")
+    G.add_node("doc:p3",    kind="doc")
+    G.add_edge("doc:p1", "ent:alice")
+    G.add_edge("doc:p2", "ent:alice")
+    G.add_edge("doc:p2", "ent:bob")
+    G.add_edge("doc:p3", "ent:bob")
+    ppr = {"doc:p1": 0.3, "doc:p2": 0.5, "doc:p3": 0.2}
+    paths = build_reasoning_paths(G, seeds=["ent:alice"],
+                                  retrieved_doc_ids=["p2", "p3"],
+                                  ppr_scores=ppr, max_paths=5, max_hops=4)
+    # Both p2 (1 hop via alice) and p3 (3 hops via alice→p2→bob→p3) reachable
+    assert len(paths) >= 1
+    # First should be the higher-PPR shorter path
+    assert paths[0].node_ids[0] == "ent:alice"
+    assert paths[0].score > 0

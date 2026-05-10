@@ -95,10 +95,18 @@ def build_entity_kg(
     nlp=None,
     labels: set[str] = None,
     min_entity_length: int = 2,
+    linker=None,
 ) -> EntityKG:
     """Run NER over each document, build the bipartite KG.
 
     `nlp` is a spaCy pipeline; if None, loads `en_core_web_sm`.
+
+    `linker` is an optional `entity_linker.Linker` for canonicalising
+    mentions globally across the corpus. When None (default), the
+    substring-collapse heuristic is applied per-document. Pass
+    `EmbeddingLinker(...)` for cross-document embedding-based clustering
+    — substantially better recall on entities with surface variation
+    ("United States" / "U.S." / "USA").
     """
     if nlp is None:
         import spacy
@@ -108,6 +116,7 @@ def build_entity_kg(
 
     # Pass 1: extract per-doc mentions (raw)
     raw_per_doc: dict[str, list[str]] = {}
+    all_mentions: set[str] = set()
     for doc in documents:
         if not doc.text.strip():
             raw_per_doc[doc.id] = []
@@ -121,35 +130,47 @@ def build_entity_kg(
             if len(text) < min_entity_length:
                 continue
             ms.append(text)
+            all_mentions.add(text)
         raw_per_doc[doc.id] = ms
 
-    # Pass 2: canonicalize and merge substring mentions per doc
-    # ("Derrickson" → "scott derrickson" if both appear)
-    canonical_per_doc: dict[str, set[str]] = {}
+    # Pass 2: canonicalise.
     canonical_to_displays: dict[str, set[str]] = defaultdict(set)
-    for doc_id, mentions in raw_per_doc.items():
-        canon_set = set()
-        canon_list = [canonicalize(m) for m in mentions]
-        for c, m in zip(canon_list, mentions):
-            if c:
-                canon_set.add(c)
-                canonical_to_displays[c].add(m)
-        # collapse substrings: if "scott derrickson" present, drop standalone "derrickson"
-        sorted_canons = sorted(canon_set, key=len, reverse=True)
-        keep: set[str] = set()
-        for c in sorted_canons:
-            # if a longer kept form contains c as a token-aligned substring, fold in
-            absorbed = False
-            for longer in keep:
-                if c != longer and (f" {c} " in f" {longer} "
-                                    or longer.startswith(c + " ")
-                                    or longer.endswith(" " + c)):
-                    absorbed = True
-                    canonical_to_displays[longer] |= canonical_to_displays.get(c, set())
-                    break
-            if not absorbed:
-                keep.add(c)
-        canonical_per_doc[doc_id] = keep
+    if linker is not None:
+        # Cross-document linking — produces a stable raw→canonical map.
+        link_map = linker.link(all_mentions)   # raw → canonical
+        canonical_per_doc: dict[str, set[str]] = {}
+        for doc_id, mentions in raw_per_doc.items():
+            canon_set = set()
+            for m in mentions:
+                c = link_map.get(m, canonicalize(m))
+                if c:
+                    canon_set.add(c)
+                    canonical_to_displays[c].add(m)
+            canonical_per_doc[doc_id] = canon_set
+    else:
+        # Default: per-doc substring collapse (the original behaviour).
+        canonical_per_doc = {}
+        for doc_id, mentions in raw_per_doc.items():
+            canon_set = set()
+            canon_list = [canonicalize(m) for m in mentions]
+            for c, m in zip(canon_list, mentions):
+                if c:
+                    canon_set.add(c)
+                    canonical_to_displays[c].add(m)
+            sorted_canons = sorted(canon_set, key=len, reverse=True)
+            keep: set[str] = set()
+            for c in sorted_canons:
+                absorbed = False
+                for longer in keep:
+                    if c != longer and (f" {c} " in f" {longer} "
+                                        or longer.startswith(c + " ")
+                                        or longer.endswith(" " + c)):
+                        absorbed = True
+                        canonical_to_displays[longer] |= canonical_to_displays.get(c, set())
+                        break
+                if not absorbed:
+                    keep.add(c)
+            canonical_per_doc[doc_id] = keep
 
     # Build canonical → node id map (stable: longest display form as label)
     entity_canonical_to_node: dict[str, str] = {}

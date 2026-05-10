@@ -10,3 +10,10 @@ try:
     __all__.append("QdrantStore")
 except ImportError:
     pass
+
+# Chroma is also optional.
+try:
+    from .chroma import ChromaStore  # noqa: F401
+    __all__.append("ChromaStore")
+except ImportError:
+    pass

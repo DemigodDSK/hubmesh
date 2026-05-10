@@ -13,6 +13,7 @@ from .scoring import (
 )
 from .packing import pack
 from .kg import EntityKG, extract_query_entities
+from .paths import build_reasoning_paths
 
 
 @dataclass
@@ -236,11 +237,16 @@ class Planner:
         ppr_seeds = kg.query_entity_nodes(q_mentions)
 
         # If query has no extractable entities OR none match the KG, fall back
-        # to using top-k cosine seed docs as PPR teleport (still better than
-        # nothing — PPR will spread to their entity neighbours).
+        # to entities mentioned by the top cosine-similar passages. Using
+        # entity nodes (rather than passage nodes) as PPR seeds keeps the
+        # diffusion meaningful: it propagates through the entity graph as
+        # a real entity match would.
         if not ppr_seeds:
-            seed_docs = [doc_id for doc_id, _ in self.store.search(qvec, top_k=5)]
-            ppr_seeds = [f"doc:{d}" for d in seed_docs if f"doc:{d}" in kg.graph]
+            seed_docs = [doc_id for doc_id, _ in self.store.search(qvec, top_k=3)]
+            for d in seed_docs:
+                ents = kg.doc_to_entities.get(d, set())
+                ppr_seeds.extend([e for e in ents if e in kg.graph])
+            ppr_seeds = list(dict.fromkeys(ppr_seeds))[:8]   # dedup, cap
 
         # 2. PPR over the bipartite KG (uses precomputed sparse solver)
         if ppr_seeds and self._ppr_solver is not None:
@@ -310,11 +316,21 @@ class Planner:
             vec_of=self._vec_of,
         )
 
+        # Build reasoning paths from query entities → retrieved docs.
+        # Useful for explainability: shows the multi-hop chain that
+        # surfaced each document.
+        picked_ids = [p.doc.id for p in picked[:top_k]]
+        reasoning = build_reasoning_paths(
+            kg.graph, ppr_seeds, picked_ids, ppr_scores,
+            max_paths=min(5, top_k),
+            max_hops=4,
+        )
+
         return RetrievalResult(
             query=qtext,
             context=context,
             sources=picked[:top_k],
-            reasoning=[],
+            reasoning=reasoning,
             debug={
                 "mode": "kg",
                 "query_mentions": q_mentions,
