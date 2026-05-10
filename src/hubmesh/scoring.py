@@ -38,6 +38,26 @@ class ScoringWeights:
     coherence: float = 1.0
 
 
+@dataclass
+class ScoringConfig:
+    """Combine weights with the integration mode.
+
+    integration:
+      'geom' — geometric mean (multi-criteria, all-must-be-strong; original
+               NNSI flavour but more brittle when components have low
+               correlation with the answer).
+      'sum'  — weighted sum (forgiving — a strong component can compensate
+               for a weak one; better when one component is highly
+               informative, like cosine similarity for QA queries).
+    """
+    weights: ScoringWeights = None
+    integration: str = "sum"   # "geom" | "sum"
+
+    def __post_init__(self):
+        if self.weights is None:
+            self.weights = ScoringWeights()
+
+
 def _minmax_dict(d: dict[str, float]) -> dict[str, float]:
     if not d:
         return {}
@@ -82,12 +102,20 @@ def composite_score(
     structural: dict[str, float],
     coherence: dict[str, float],
     weights: ScoringWeights = ScoringWeights(),
+    integration: str = "sum",
 ) -> dict[str, float]:
-    """Geometric-mean integration of the three components.
+    """Combine the three components into a per-node score.
 
     All three inputs are min-max normalised to [0, 1] before integration so
-    that components with very different natural scales (PPR sums to 1; cosine
-    sim is in [-1, 1]; coherence is already in [0, 1]) are treated comparably.
+    components with different natural scales (PPR sums to 1; cosine in
+    [-1, 1]; coherence in [0, 1]) are comparable.
+
+    integration:
+      'geom' — log-geometric mean. Strong "all must be high" property.
+               Use when all components positively correlate with the answer.
+      'sum'  — weighted arithmetic sum. Forgiving — a high component
+               compensates for a low one. Use when one component (e.g.
+               relevance) is highly informative on its own.
     """
     R = _minmax_dict(relevance)
     S = _minmax_dict(structural)
@@ -95,11 +123,21 @@ def composite_score(
     nodes = set(R) | set(S) | set(C)
     out: dict[str, float] = {}
     w_total = weights.relevance + weights.structural + weights.coherence
-    for n in nodes:
-        log_geo = (
-            weights.relevance  * np.log(EPS + R.get(n, 0.0)) +
-            weights.structural * np.log(EPS + S.get(n, 0.0)) +
-            weights.coherence  * np.log(EPS + C.get(n, 0.0))
-        ) / w_total
-        out[n] = float(np.exp(log_geo))
+    if integration == "geom":
+        for n in nodes:
+            log_geo = (
+                weights.relevance  * np.log(EPS + R.get(n, 0.0)) +
+                weights.structural * np.log(EPS + S.get(n, 0.0)) +
+                weights.coherence  * np.log(EPS + C.get(n, 0.0))
+            ) / w_total
+            out[n] = float(np.exp(log_geo))
+    elif integration == "sum":
+        for n in nodes:
+            out[n] = float(
+                (weights.relevance  * R.get(n, 0.0) +
+                 weights.structural * S.get(n, 0.0) +
+                 weights.coherence  * C.get(n, 0.0)) / w_total
+            )
+    else:
+        raise ValueError(f"unknown integration mode: {integration!r}")
     return out

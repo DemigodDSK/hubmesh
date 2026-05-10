@@ -24,9 +24,25 @@ class PlannerConfig:
     redundancy_lambda: float = 0.3 # MMR diversity vs. score tradeoff
     weights: ScoringWeights = None # set in __post_init__
 
+    # Anchoring is robust for single-community retrieval but actively harmful
+    # for multi-hop QA (where the answer spans multiple communities). Default
+    # off; turn on for KG-style topical retrieval.
+    use_community_anchor: bool = False
+    use_coherence: bool = False    # ditto — rewards staying in one community
+
+    # Integration mode. 'sum' (default) is forgiving — a high relevance
+    # compensates for low PPR. 'geom' enforces "must be strong on every
+    # component" (the original NNSI flavour, useful when all components
+    # positively correlate with the answer).
+    integration: str = "sum"
+
     def __post_init__(self):
         if self.weights is None:
-            self.weights = ScoringWeights()
+            # Heavily relevance-biased default — cosine sim is highly
+            # informative for QA. Structural acts as a tail-recovery boost
+            # for multi-hop paragraphs whose cosine is low. Coherence off
+            # by default (off-topic for multi-hop).
+            self.weights = ScoringWeights(relevance=3.0, structural=1.0, coherence=0.0)
 
 
 def _vec_of_factory(store: VectorStore) -> Callable[[str], np.ndarray]:
@@ -94,26 +110,36 @@ class Planner:
         if G.number_of_nodes() == 0:
             return RetrievalResult(query=qtext, context="", sources=[], reasoning=[])
 
-        # 3. community anchoring (robust to feature overlap)
-        communities = detect_communities(G)
-        anchor = best_community_for_query(qvec, G, communities, self._vec_of)
+        # 3. (optional) community anchoring — useful for single-topic
+        #    retrieval, harmful for multi-hop. Disabled by default.
+        if self.config.use_community_anchor or self.config.use_coherence:
+            communities = detect_communities(G)
+            anchor = best_community_for_query(qvec, G, communities, self._vec_of)
+        else:
+            communities = {}
+            anchor = set(G.nodes)   # "no anchor" = whole subgraph
 
-        # 4. PPR with seed teleport — pick seeds inside the anchored community
-        anchor_seeds = [s for s in seed_ids[: self.config.n_seeds_for_ppr] if s in anchor]
-        if not anchor_seeds:                          # fallback: any seed in the subgraph
-            anchor_seeds = [s for s in seed_ids if s in G][: self.config.n_seeds_for_ppr]
+        # 4. PPR with seed teleport. Use first-pass ANN seeds directly — for
+        #    multi-hop the right move is to let diffusion reach far hops, not
+        #    confine teleport to a single community.
+        ppr_seeds = [s for s in seed_ids[: self.config.n_seeds_for_ppr] if s in G]
         ppr_scores = personalized_pagerank(
-            G, anchor_seeds, alpha=self.config.ppr_alpha,
+            G, ppr_seeds, alpha=self.config.ppr_alpha,
         )
 
-        # 5. multi-component scoring
+        # 5. multi-component scoring (coherence is dropped when off — the
+        #    composite collapses to relevance × structural geometric mean).
         relevance = compute_relevance(G, qvec, self._vec_of)
-        coherence = compute_coherence(G, communities, anchor)
+        if self.config.use_coherence and communities:
+            coherence = compute_coherence(G, communities, anchor)
+        else:
+            coherence = {n: 1.0 for n in G.nodes}   # neutral element
         composite = composite_score(
             relevance=relevance,
             structural=ppr_scores,
             coherence=coherence,
             weights=self.config.weights,
+            integration=self.config.integration,
         )
 
         # Pull docs and rank
@@ -150,6 +176,6 @@ class Planner:
                 "subgraph_edges": G.number_of_edges(),
                 "communities": len(set(communities.values())) if communities else 0,
                 "anchor_size": len(anchor),
-                "ppr_seeds": anchor_seeds,
+                "ppr_seeds": ppr_seeds,
             },
         )
