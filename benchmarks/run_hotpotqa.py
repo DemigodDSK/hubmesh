@@ -42,10 +42,13 @@ def naive_topk_retrieve(store: InMemoryStore, query_vec: np.ndarray, k: int) -> 
     return [doc_id for doc_id, _ in store.search(query_vec, top_k=k)]
 
 
-def hubmesh_retrieve(planner: Planner, query_vec: np.ndarray, k: int) -> list[str]:
-    """Full hubmesh pipeline."""
-    result = planner.retrieve(query=query_vec.astype(np.float32), top_k=k,
-                              budget_tokens=10_000)
+def hubmesh_retrieve(planner: Planner, query_text: str,
+                     query_vec: np.ndarray, k: int) -> list[str]:
+    """Full hubmesh pipeline. Passes text + vec so KG-mode NER works."""
+    result = planner.retrieve(
+        query=query_text, query_vec=query_vec.astype(np.float32),
+        top_k=k, budget_tokens=10_000,
+    )
     return [s.doc.id for s in result.sources]
 
 
@@ -63,6 +66,9 @@ def main():
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--knn", type=int, default=8, help="k for proximity graph")
     ap.add_argument("--model", default="all-MiniLM-L6-v2")
+    ap.add_argument("--kg", action="store_true",
+                    help="Build entity-linked KG and use KG-mode retrieval "
+                         "(HippoRAG-style; this is the real test)")
     args = ap.parse_args()
 
     print("=" * 84)
@@ -94,8 +100,28 @@ def main():
         for i, t in enumerate(pool_titles)
     ]
     store = InMemoryStore(docs, k=args.knn)
-    planner = Planner(store=store)
-    print(f"      kNN graph k={args.knn}")
+
+    kg = None
+    if args.kg:
+        print("      building entity-linked KG (spaCy NER over corpus)...")
+        from hubmesh.kg import build_entity_kg
+        import spacy
+        nlp = spacy.load("en_core_web_sm")
+        t0 = time.perf_counter()
+        kg = build_entity_kg(docs, nlp=nlp)
+        ent_nodes = sum(1 for n in kg.graph.nodes if n.startswith("ent:"))
+        doc_nodes = sum(1 for n in kg.graph.nodes if n.startswith("doc:"))
+        co_edges = sum(1 for _, _, d in kg.graph.edges(data=True)
+                       if d.get("kind") == "co_occurs")
+        print(f"        KG: {doc_nodes} doc nodes, {ent_nodes} entity nodes, "
+              f"{kg.graph.number_of_edges()} edges "
+              f"({co_edges} entity-entity co-occurrence) "
+              f"in {time.perf_counter()-t0:.1f}s")
+        planner = Planner(store=store, kg=kg, nlp=nlp)
+        print(f"      mode: KG-mode retrieval enabled")
+    else:
+        planner = Planner(store=store)
+        print(f"      mode: kNN graph k={args.knn}")
 
     print("[4/4] Evaluating retrieval strategies...")
     ks = [2, 5, 10]
@@ -116,7 +142,7 @@ def main():
         timings["naive_topk"] += time.perf_counter() - t0
 
         t0 = time.perf_counter()
-        hub = hubmesh_retrieve(planner, qvec, max(ks))
+        hub = hubmesh_retrieve(planner, ex.question, qvec, max(ks))
         timings["hubmesh"] += time.perf_counter() - t0
 
         for k in ks:

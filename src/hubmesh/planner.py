@@ -12,6 +12,7 @@ from .scoring import (
     ScoringWeights, compute_relevance, compute_coherence, composite_score,
 )
 from .packing import pack
+from .kg import EntityKG, extract_query_entities
 
 
 @dataclass
@@ -60,13 +61,21 @@ def _vec_of_factory(store: VectorStore) -> Callable[[str], np.ndarray]:
 class Planner:
     """Centrality-aware GraphRAG retrieval planner.
 
-    Pipeline:
-      1. First-pass ANN  -> seed candidate doc_ids
-      2. Build induced 2-hop subgraph
-      3. Detect communities, anchor to the one closest to query
-      4. Personalized PageRank from seeds restricted to anchored community
-      5. Score every node by  relevance × structural × coherence (geom mean)
-      6. Pack into context budget with redundancy control
+    Two modes:
+
+      kg_mode (when an EntityKG is provided): the production / multi-hop path.
+        1. Extract entities from query
+        2. Match to KG entity nodes (teleport seeds)
+        3. PPR over the bipartite KG
+        4. Doc score = relevance × structural (PPR at doc node)
+        5. Pack with budget+redundancy
+
+      knn_mode (default): the prototyping / non-KG path.
+        1. First-pass ANN → seed doc_ids
+        2. Induced subgraph on the kNN proximity graph
+        3. (optional) community anchoring
+        4. PPR from seeds → score by relevance × structural × coherence
+        5. Pack
     """
 
     def __init__(
@@ -74,27 +83,47 @@ class Planner:
         store: VectorStore,
         embed: Callable[[str], np.ndarray] | None = None,
         config: PlannerConfig | None = None,
+        kg: EntityKG | None = None,
+        nlp=None,
     ):
         self.store = store
         self.embed = embed
         self.config = config or PlannerConfig()
         self._vec_of = _vec_of_factory(store)
+        self.kg = kg
+        self._nlp = nlp   # spaCy pipeline for query-side NER (loaded lazily)
 
     def retrieve(
         self,
         query: str | np.ndarray,
         top_k: int = 10,
         budget_tokens: int = 4000,
+        query_vec: np.ndarray | None = None,
     ) -> RetrievalResult:
-        # 0. embed if needed
+        """Retrieve top_k documents.
+
+        Pass `query` as a string (preferred — required for KG mode's NER).
+        For batched benchmarking where embeddings are precomputed, pass the
+        text as `query` and the precomputed vector as `query_vec` to skip
+        re-embedding.
+        """
+        # 0. resolve text + vector
         if isinstance(query, np.ndarray):
             qvec = query
             qtext = ""
         else:
-            if self.embed is None:
-                raise ValueError("Pass embed=callable to Planner or supply a query vector")
-            qvec = self.embed(query)
             qtext = query
+            if query_vec is not None:
+                qvec = query_vec
+            else:
+                if self.embed is None:
+                    raise ValueError("Pass embed= to Planner, supply query_vec, "
+                                     "or pass a vector as `query`")
+                qvec = self.embed(query)
+
+        # Route to KG-mode if a knowledge graph is attached, else kNN mode.
+        if self.kg is not None and qtext:
+            return self._retrieve_kg(qtext, qvec, top_k, budget_tokens)
 
         # 1. first-pass ANN
         seeds_with_sim = self.store.search(qvec, top_k=self.config.seed_top_k)
@@ -172,10 +201,106 @@ class Planner:
             sources=picked[:top_k],
             reasoning=[],   # paths come in a later iteration
             debug={
+                "mode": "knn",
                 "subgraph_nodes": G.number_of_nodes(),
                 "subgraph_edges": G.number_of_edges(),
                 "communities": len(set(communities.values())) if communities else 0,
                 "anchor_size": len(anchor),
                 "ppr_seeds": ppr_seeds,
+            },
+        )
+
+    # ------------------------------------------------------------------
+    # KG-mode retrieval — the multi-hop path (HippoRAG-style + multi-component)
+    # ------------------------------------------------------------------
+
+    def _retrieve_kg(
+        self, qtext: str, qvec: np.ndarray,
+        top_k: int, budget_tokens: int,
+    ) -> RetrievalResult:
+        """Retrieval that uses the entity-linked KG as the routing graph
+        instead of a kNN proximity graph."""
+        kg = self.kg
+        if self._nlp is None:
+            import spacy
+            self._nlp = spacy.load("en_core_web_sm")
+
+        # 1. extract query entities, match to KG nodes
+        q_mentions = extract_query_entities(qtext, nlp=self._nlp)
+        ppr_seeds = kg.query_entity_nodes(q_mentions)
+
+        # If query has no extractable entities OR none match the KG, fall back
+        # to using top-k cosine seed docs as PPR teleport (still better than
+        # nothing — PPR will spread to their entity neighbours).
+        if not ppr_seeds:
+            seed_docs = [doc_id for doc_id, _ in self.store.search(qvec, top_k=5)]
+            ppr_seeds = [f"doc:{d}" for d in seed_docs if f"doc:{d}" in kg.graph]
+
+        # 2. PPR over the bipartite KG
+        ppr_scores: dict[str, float] = personalized_pagerank(
+            kg.graph, ppr_seeds, alpha=self.config.ppr_alpha,
+        ) if ppr_seeds else {}
+
+        # 3. Score each candidate document by (cosine relevance) + (structural PPR).
+        #    We score every doc node — the corpus is bounded so this is fine
+        #    for the prototype. For huge corpora we'd restrict to PPR>0 nodes.
+        doc_relevance: dict[str, float] = {}
+        doc_structural: dict[str, float] = {}
+        for node_id in kg.graph.nodes:
+            if not node_id.startswith("doc:"):
+                continue
+            doc_id = node_id[4:]
+            try:
+                vec = self._vec_of(doc_id)
+            except (KeyError, AttributeError):
+                continue
+            qn = qvec / max(float(np.linalg.norm(qvec)), 1e-12)
+            vn = vec / max(float(np.linalg.norm(vec)), 1e-12)
+            doc_relevance[doc_id] = float(qn @ vn)
+            doc_structural[doc_id] = float(ppr_scores.get(node_id, 0.0))
+
+        # Multi-component scoring on docs only. Coherence is irrelevant in KG
+        # mode (the graph already encodes topical structure via entities).
+        composite = composite_score(
+            relevance=doc_relevance,
+            structural=doc_structural,
+            coherence={d: 1.0 for d in doc_relevance},   # neutral
+            weights=self.config.weights,
+            integration=self.config.integration,
+        )
+
+        ordered = sorted(composite.items(), key=lambda kv: -kv[1])
+        scored: list[ScoredDocument] = []
+        for rank, (doc_id, score) in enumerate(ordered):
+            try:
+                doc = self.store.get(doc_id)
+            except KeyError:
+                continue
+            scored.append(ScoredDocument(
+                doc=doc,
+                similarity=doc_relevance[doc_id],
+                ppr_score=doc_structural[doc_id],
+                composite_score=float(score),
+                rank=rank,
+            ))
+
+        context, picked = pack(
+            scored[:top_k * 5],
+            budget_tokens=budget_tokens,
+            redundancy_lambda=self.config.redundancy_lambda,
+            vec_of=self._vec_of,
+        )
+
+        return RetrievalResult(
+            query=qtext,
+            context=context,
+            sources=picked[:top_k],
+            reasoning=[],
+            debug={
+                "mode": "kg",
+                "query_mentions": q_mentions,
+                "ppr_seeds": ppr_seeds[:10],
+                "kg_nodes": kg.graph.number_of_nodes(),
+                "kg_edges": kg.graph.number_of_edges(),
             },
         )
