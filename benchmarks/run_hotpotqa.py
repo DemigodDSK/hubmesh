@@ -26,6 +26,7 @@ from hubmesh import Planner, Document
 from hubmesh.adapters import InMemoryStore
 
 from hotpotqa_loader import load_hotpotqa, retrievable_gold
+from hippo_style import hippo_style_retrieve
 
 
 def embed_texts(texts: list[str], batch_size: int = 64, model_name: str = "all-MiniLM-L6-v2") -> np.ndarray:
@@ -125,11 +126,14 @@ def main():
 
     print("[4/4] Evaluating retrieval strategies...")
     ks = [2, 5, 10]
-    results = {
-        "naive_topk":     {k: [] for k in ks},
-        "hubmesh":        {k: [] for k in ks},
-    }
-    timings = {"naive_topk": 0.0, "hubmesh": 0.0}
+    has_kg = kg is not None
+    strategies = ["naive_topk", "hubmesh"]
+    if has_kg:
+        strategies.append("hippo_style")
+    results = {s: {k: [] for k in ks} for s in strategies}
+    timings = {s: 0.0 for s in strategies}
+
+    nlp_for_query = planner._nlp if has_kg else None
 
     for ex_idx, ex in enumerate(tqdm(examples, desc="queries")):
         gold = retrievable_gold(ex, set(pool_titles))
@@ -149,6 +153,20 @@ def main():
             results["naive_topk"][k].append(recall_at_k(naive, gold, k))
             results["hubmesh"][k].append(recall_at_k(hub, gold, k))
 
+        if has_kg:
+            # Lazy-load nlp here in case planner hadn't yet
+            if nlp_for_query is None:
+                import spacy
+                nlp_for_query = spacy.load("en_core_web_sm")
+                planner._nlp = nlp_for_query
+            t0 = time.perf_counter()
+            hippo = hippo_style_retrieve(
+                kg, nlp_for_query, ex.question, qvec, store, max(ks),
+            )
+            timings["hippo_style"] += time.perf_counter() - t0
+            for k in ks:
+                results["hippo_style"][k].append(recall_at_k(hippo, gold, k))
+
     print()
     print("=" * 84)
     print(f"RESULTS — supporting-fact recall (mean over "
@@ -158,7 +176,7 @@ def main():
     print(fmt.format("strategy", "recall@2", "recall@5", "recall@10",
                      "total_time_s"))
     print("-" * 84)
-    for name in ["naive_topk", "hubmesh"]:
+    for name in strategies:
         row = [name]
         for k in ks:
             arr = np.array(results[name][k], dtype=float)
@@ -167,12 +185,13 @@ def main():
         print(fmt.format(*row))
 
     print()
-    delta_2 = (np.mean(results["hubmesh"][2]) -
-               np.mean(results["naive_topk"][2])) * 100
-    delta_5 = (np.mean(results["hubmesh"][5]) -
-               np.mean(results["naive_topk"][5])) * 100
-    print(f"  Δ recall@2: {delta_2:+.2f} pts (hubmesh - naive)")
-    print(f"  Δ recall@5: {delta_5:+.2f} pts")
+    print("Δ vs baselines (hubmesh - X):")
+    for baseline in (s for s in strategies if s != "hubmesh"):
+        for k in ks:
+            d = (np.mean(results["hubmesh"][k]) -
+                 np.mean(results[baseline][k])) * 100
+            print(f"  recall@{k:<2} hubmesh − {baseline:<14} = {d:+.2f} pts")
+        print()
 
 
 if __name__ == "__main__":
