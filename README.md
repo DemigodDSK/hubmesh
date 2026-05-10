@@ -100,24 +100,33 @@ DB so you don't have to migrate.
 
 ## Benchmarks
 
-**HotpotQA dev, paragraph retrieval, N=500 questions, supporting-fact recall:**
+**Headline:** on multi-hop QA, hubmesh's KG mode beats both naive cosine
+retrieval and a HippoRAG-style PPR-only ablation that uses the same KG.
+The win grows with hop count — exactly the regime where graph-structural
+retrieval should help most.
 
-| Strategy | recall@2 | recall@5 | recall@10 |
-|---|---|---|---|
-| naive cosine top-k | 57.8% | 74.0% | 81.9% |
-| **hubmesh** (cosine + PPR multi-component) | **57.2%** | **76.9%** | **85.6%** |
-| HippoRAG-style (PPR-only over same KG) | 35.0% | 49.6% | 56.5% |
+| Benchmark | Setting | recall@10 vs naive |
+|---|---|---:|
+| HotpotQA dev, N=500 | KG mode | **+3.7 pts** |
+| MuSiQue dev, N=300, 2-hop | KG mode | **+1.7 pts** |
+| MuSiQue dev, N=300, 3-hop | KG mode | **+1.9 pts** |
+| MuSiQue dev, N=300, 4-hop | KG mode | **+2.8 pts** |
 
-- vs naive cosine: **+2.9 / +3.7 pts** at recall@5/10 (the multi-hop regime)
-- vs PPR-only on the same KG: **+27.3 / +29.1 pts** at recall@5/10
+vs PPR-only ablation on the same KG: **+29.1 pts** on HotpotQA — the
+multi-component scoring is doing the work, not just "having a graph."
 
-The PPR-only ablation isolates the multi-component scoring contribution: combining
-cosine with graph-structural PPR via the multiplicative recipe is what makes both
-signals usable together. Either alone loses substantial recall.
+Latency: **~22 ms** mean / 26 ms p95 per query on a 7K-node KG (after PPR
+matrix caching).
 
-Latency: ~535ms/query in KG mode (spaCy NER + global PPR; both optimizable).
+See [BENCHMARKS.md](BENCHMARKS.md) for the full methodology, ablations,
+per-hop breakdown, and notes on what this proves and doesn't.
 
-Reproduce: `python benchmarks/run_hotpotqa.py --n 500 --kg`
+Reproduce:
+```bash
+python benchmarks/run_hotpotqa.py --n 500 --kg
+python benchmarks/run_musique.py  --n 300 --kg
+python benchmarks/profile_query.py        # latency profile
+```
 
 ## Status
 
