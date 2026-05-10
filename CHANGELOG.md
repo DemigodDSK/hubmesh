@@ -4,6 +4,19 @@ All notable changes to **hubmesh** are documented here. The format is loosely
 based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the
 project follows [SemVer](https://semver.org/) starting from 0.1.0.
 
+## [0.1.1] — 2026-05-10
+
+### Fixed
+- **Project URLs** in PyPI metadata pointed at a non-existent GitHub
+  user (`dattasaikrishnanaidu`); corrected to the actual repo at
+  [DemigodDSK/hubmesh](https://github.com/DemigodDSK/hubmesh).
+- Added `Repository` and `Changelog` URL entries so the PyPI sidebar
+  shows links to source and history.
+
+No code changes — purely metadata. `pip install hubmesh==0.1.0` is
+identical to 0.1.1 at runtime; upgrade only if you want clickable links
+on PyPI to resolve correctly.
+
 ## [0.1.0] — 2026-05-10
 
 The first feature-complete pre-alpha. Multi-component scoring, KG mode,

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "hubmesh"
-version = "0.1.0"
+version = "0.1.1"
 description = "Centrality-aware GraphRAG retrieval planner — drop-in layer over any vector DB"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -41,8 +41,10 @@ all = ["qdrant-client>=1.10", "chromadb>=0.5",
        "datasets>=2.18", "tqdm>=4.66"]
 
 [project.urls]
-Homepage = "https://github.com/dattasaikrishnanaidu/hubmesh"
-Issues = "https://github.com/dattasaikrishnanaidu/hubmesh/issues"
+Homepage = "https://github.com/DemigodDSK/hubmesh"
+Repository = "https://github.com/DemigodDSK/hubmesh"
+Issues = "https://github.com/DemigodDSK/hubmesh/issues"
+Changelog = "https://github.com/DemigodDSK/hubmesh/blob/main/CHANGELOG.md"
 
 [tool.setuptools.packages.find]
 where = ["src"]
