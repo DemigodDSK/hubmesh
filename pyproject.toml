@@ -28,9 +28,12 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8.0", "pytest-cov>=4.1", "ruff>=0.4"]
-benchmarks = ["datasets>=2.18", "tqdm>=4.66"]
-adapters = []  # populated as we add Pinecone, Qdrant, Weaviate, pgvector
+dev = ["pytest>=8.0", "pytest-cov>=4.1", "ruff>=0.4", "qdrant-client>=1.10"]
+benchmarks = ["datasets>=2.18", "tqdm>=4.66", "sentence-transformers>=3.0", "spacy>=3.7"]
+qdrant = ["qdrant-client>=1.10"]
+kg = ["spacy>=3.7"]
+all = ["qdrant-client>=1.10", "spacy>=3.7", "sentence-transformers>=3.0",
+       "datasets>=2.18", "tqdm>=4.66"]
 
 [project.urls]
 Homepage = "https://github.com/dattasaikrishnanaidu/hubmesh"

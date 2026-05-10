@@ -31,25 +31,58 @@ optimization, repurposed here for retrieval planning.
 
 ## Quickstart
 
+### In-memory (testing, small corpora)
+
 ```python
 from hubmesh import Planner
 from hubmesh.adapters import InMemoryStore
 
-# bring your own embeddings (callable taking text -> np.ndarray)
-embed = ...
-documents = [...]   # list of strings or {id, text, vector, metadata}
+embed = ...   # callable: text -> np.ndarray
+docs = [...]  # list of Document or strings or dicts
 
-store = InMemoryStore.from_documents(documents, embed=embed)
+store = InMemoryStore.from_documents(docs, embed=embed)
 planner = Planner(store=store, embed=embed)
+result = planner.retrieve(query="...", top_k=10, budget_tokens=4000)
+```
 
-result = planner.retrieve(
-    query="Where was the founder of the company that bought Slack born?",
-    top_k=10,
-    budget_tokens=4000,
-)
-print(result.context)       # packed context string
-print(result.sources)       # ranked source documents with scores
-print(result.reasoning)     # paths through the graph (when multi-hop)
+### Qdrant adapter (production)
+
+```python
+from hubmesh import Planner
+from hubmesh.adapters import QdrantStore
+
+# Local: Qdrant in-memory or on-disk
+store = QdrantStore.from_documents(docs)                          # in-memory
+store = QdrantStore.from_documents(docs, path="./qdrant_data")    # on-disk
+# Remote
+store = QdrantStore.from_documents(docs, url="http://localhost:6333")
+
+planner = Planner(store=store, embed=embed)
+result = planner.retrieve(query="...", top_k=10)
+```
+
+### Multi-hop / KG mode
+
+```python
+from hubmesh.kg import build_entity_kg
+import spacy
+
+nlp = spacy.load("en_core_web_sm")
+kg = build_entity_kg(docs, nlp=nlp)
+
+planner = Planner(store=store, kg=kg, nlp=nlp)
+result = planner.retrieve(query="Where was the founder of the company that bought Slack born?",
+                          top_k=10, budget_tokens=4000)
+```
+
+## Installation
+
+```bash
+pip install hubmesh                   # core
+pip install "hubmesh[qdrant]"         # with Qdrant adapter
+pip install "hubmesh[kg]"             # with entity-linked KG support (spaCy)
+pip install "hubmesh[all]"            # everything
+python -m spacy download en_core_web_sm   # required for KG mode
 ```
 
 ## Design
