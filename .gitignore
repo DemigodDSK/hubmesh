@@ -12,3 +12,7 @@ dist/
 .DS_Store
 data/cache/
 experiments_*.log
+*.npy
+*.faiss
+chroma_data/
+qdrant_data/

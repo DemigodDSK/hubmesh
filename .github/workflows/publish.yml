@@ -1,0 +1,60 @@
+name: publish
+
+# Auto-publish to PyPI when a new tag is pushed (e.g. `git tag v0.2.0 && git push --tags`).
+#
+# REQUIRED ONE-TIME SETUP (repo owner only):
+#   1. Create a PyPI account at https://pypi.org/account/register/
+#   2. Generate an API token: https://pypi.org/manage/account/token/
+#      (scope it to "Entire account" the first time; later scope to this project)
+#   3. Add the token as a repo secret named PYPI_API_TOKEN:
+#      Settings → Secrets and variables → Actions → New repository secret
+#
+# After setup, every `git push --tags` of a tag matching v*.*.* will publish.
+# To dry-run without publishing, push the tag with `--dry-run` testpypi env first.
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:        # allow manual trigger from the Actions UI
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write       # required for trusted publishing (alternative to token)
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install build tooling
+        run: |
+          python -m pip install --upgrade pip build twine
+
+      - name: Build sdist + wheel
+        run: |
+          python -m build
+          python -m twine check dist/*
+          ls -la dist/
+
+      - name: Upload to PyPI
+        if: ${{ env.PYPI_API_TOKEN != '' }}
+        env:
+          PYPI_API_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+        run: |
+          python -m twine upload \
+            --username __token__ \
+            --password "$PYPI_API_TOKEN" \
+            dist/*
+
+      - name: Skip publish (no PYPI_API_TOKEN secret set)
+        if: ${{ env.PYPI_API_TOKEN == '' }}
+        env:
+          PYPI_API_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+        run: |
+          echo "::warning::PYPI_API_TOKEN secret is not set; built artefacts but did not publish."
+          echo "Add the token in Settings → Secrets and variables → Actions to enable publishing."
