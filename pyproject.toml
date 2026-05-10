@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hubmesh"
+version = "0.0.1"
+description = "Centrality-aware GraphRAG retrieval planner — drop-in layer over any vector DB"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Datta Sai Krishna Naidu", email = "dattasai293@gmail.com" }]
+keywords = ["rag", "graphrag", "vector-search", "personalized-pagerank",
+            "context-selection", "multi-hop-retrieval"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+dependencies = [
+    "numpy>=1.26",
+    "networkx>=3.2",
+    "scipy>=1.11",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "pytest-cov>=4.1", "ruff>=0.4"]
+benchmarks = ["datasets>=2.18", "tqdm>=4.66"]
+adapters = []  # populated as we add Pinecone, Qdrant, Weaviate, pgvector
+
+[project.urls]
+Homepage = "https://github.com/dattasaikrishnanaidu/hubmesh"
+Issues = "https://github.com/dattasaikrishnanaidu/hubmesh/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["hubmesh*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
