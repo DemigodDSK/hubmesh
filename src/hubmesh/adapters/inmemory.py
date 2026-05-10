@@ -28,7 +28,13 @@ class InMemoryStore:
         self._mat_unit: np.ndarray = self._mat / norms
         self._k_graph = max(1, k)
         self._neighbor_cache: dict[str, list[str]] = {}
-        self._build_knn_graph()
+        # For corpora ≤ 5K we eagerly precompute the full kNN graph (cheap,
+        # ~free for the planner's kNN-mode). For larger corpora it would
+        # OOM — and KG-mode doesn't use the kNN graph at all — so we go
+        # lazy: each call to `neighbors(id, k)` computes on demand and
+        # caches.
+        if len(self._ids) <= 5000:
+            self._build_knn_graph_eager()
 
     @classmethod
     def from_documents(
@@ -64,18 +70,33 @@ class InMemoryStore:
             raise TypeError(f"Unsupported document type: {type(item)}")
         return cls(documents=docs, k=k)
 
-    def _build_knn_graph(self):
+    def _build_knn_graph_eager(self):
+        """Precompute the full kNN graph via the N×N cosine matrix.
+        Only safe for small corpora (≤ ~5K vectors)."""
         n = len(self._ids)
         if n == 1:
             self._neighbor_cache[self._ids[0]] = []
             return
+        k = min(self._k_graph, n - 1)
         sims = self._mat_unit @ self._mat_unit.T
         np.fill_diagonal(sims, -np.inf)
-        k = min(self._k_graph, n - 1)
         topk = np.argpartition(-sims, kth=k - 1, axis=1)[:, :k]
         for i, row in enumerate(topk):
             order = row[np.argsort(-sims[i, row])]
             self._neighbor_cache[self._ids[i]] = [self._ids[j] for j in order]
+
+    def _compute_neighbors_lazy(self, doc_id: str, k: int) -> list[str]:
+        """Compute kNN for a single doc on demand. O(n) per call but no
+        per-call OOM risk. Cached after first lookup."""
+        idx = self._id_to_idx[doc_id]
+        sims = self._mat_unit @ self._mat_unit[idx]   # (n,) vector — cheap
+        sims[idx] = -np.inf                            # mask self
+        k = min(k, len(self._ids) - 1)
+        top_idx = np.argpartition(-sims, kth=k - 1)[:k]
+        order = top_idx[np.argsort(-sims[top_idx])]
+        nbrs = [self._ids[j] for j in order]
+        self._neighbor_cache[doc_id] = nbrs
+        return nbrs
 
     # ---- VectorStore protocol ----
 
@@ -95,7 +116,9 @@ class InMemoryStore:
         return [self._docs[i] for i in doc_ids]
 
     def neighbors(self, doc_id: str, k: int) -> list[str]:
-        nb = self._neighbor_cache.get(doc_id, [])
+        nb = self._neighbor_cache.get(doc_id)
+        if nb is None:
+            nb = self._compute_neighbors_lazy(doc_id, max(k, self._k_graph))
         return nb[:k]
 
     def all_ids(self) -> list[str]:

@@ -70,6 +70,9 @@ def main():
     ap.add_argument("--kg", action="store_true",
                     help="Build entity-linked KG and use KG-mode retrieval "
                          "(HippoRAG-style; this is the real test)")
+    ap.add_argument("--no-hippo", action="store_true",
+                    help="Skip the hippo_style ablation (saves ~50% time on "
+                         "large N when you only care about hubmesh vs naive).")
     args = ap.parse_args()
 
     print("=" * 84)
@@ -128,8 +131,9 @@ def main():
     ks = [2, 5, 10]
     has_kg = kg is not None
     strategies = ["naive_topk", "hubmesh"]
-    if has_kg:
+    if has_kg and not args.no_hippo:
         strategies.append("hippo_style")
+    print(f"      strategies: {strategies}")
     results = {s: {k: [] for k in ks} for s in strategies}
     timings = {s: 0.0 for s in strategies}
 
@@ -153,7 +157,7 @@ def main():
             results["naive_topk"][k].append(recall_at_k(naive, gold, k))
             results["hubmesh"][k].append(recall_at_k(hub, gold, k))
 
-        if has_kg:
+        if has_kg and "hippo_style" in strategies:
             # Lazy-load nlp here in case planner hadn't yet
             if nlp_for_query is None:
                 import spacy

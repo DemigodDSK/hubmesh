@@ -16,3 +16,4 @@ experiments_*.log
 *.faiss
 chroma_data/
 qdrant_data/
+LAUNCH_POST_*.md
