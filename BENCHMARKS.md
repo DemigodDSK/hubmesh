@@ -9,7 +9,8 @@ on multi-hop QA. Reproduce with the scripts in `benchmarks/`.
 
 | Benchmark | Setting | Δ vs naive cosine (recall@10) | Δ vs PPR-only (recall@10) |
 |---|---|---:|---:|
-| **HotpotQA** dev, N=500 | KG mode | **+3.7 pts** | **+29.1 pts** |
+| **HotpotQA** dev, **N=7405 (full)** | KG mode | **+4.9 pts** | (N=500 only) |
+| **HotpotQA** dev, N=500 | KG mode | +3.7 pts | **+29.1 pts** |
 | **MuSiQue** dev, N=300, 2-hop | KG mode | **+1.7 pts** | +20.5 pts |
 | **MuSiQue** dev, N=300, 3-hop | KG mode | **+1.9 pts** | +31.4 pts |
 | **MuSiQue** dev, N=300, 4-hop | KG mode | **+2.8 pts** | +14.6 pts |
@@ -77,12 +78,43 @@ under the same KG. Production users with API budget can plug in any KG —
 
 ---
 
-## HotpotQA dev (N=500, distractor split)
+## HotpotQA dev — full split (N=7405)
 
-Paragraphs are pooled across 500 sampled questions and deduped by title
-(~1500 unique paragraphs in the pool). Gold = paragraphs flagged as
+The complete HotpotQA dev set. Paragraphs pooled across all 7405 questions
+and deduped by title yields **66,581 unique paragraphs** — a corpus
+approaching realistic production scale. Gold = paragraphs flagged as
 `supporting_facts` for the question. Recall@k = fraction of gold paragraphs
 in the top-k retrieved.
+
+| Strategy | recall@2 | recall@5 | recall@10 | total time |
+|---|---:|---:|---:|---:|
+| naive_topk | 0.503 | 0.625 | 0.693 | 36 s |
+| **hubmesh** | **0.514** | **0.668** | **0.742** | 3 h 49 m |
+
+Δ hubmesh − naive_topk: **+1.14** / **+4.38** / **+4.92** pts
+
+The +4.92 pts at recall@10 is **larger than the N=500 result** (+3.70 pts).
+The win didn't shrink at scale — it grew. We also win at recall@2 here
+(+1.14 pts), whereas at N=500 we were within noise. This shows the
+small-sample variance previously hiding at recall@2 was hiding a real
+positive effect.
+
+Caveats:
+- Hubmesh's 3h49m total time on a single CPU (MacBook Air M1) is roughly
+  1.86 s/query average for the planner end-to-end on a 66K-paragraph KG.
+  The bottleneck at this scale is per-query PPR over a larger graph.
+- The HippoRAG-style ablation (`hippo_style`) was not re-run at N=7405 —
+  its slower per-query time (1.1 s) would have added ~2.3 h to the total
+  run, and we already have clean ablation evidence at N=500.
+
+Reproduce: `python benchmarks/run_hotpotqa.py --n 7405 --kg --no-hippo`
+
+---
+
+## HotpotQA dev — small split (N=500, with PPR-only ablation)
+
+The N=500 results include the full 3-way comparison with the HippoRAG-style
+ablation, which gives the cleanest evidence for *what* makes hubmesh work.
 
 | Strategy | recall@2 | recall@5 | recall@10 |
 |---|---:|---:|---:|

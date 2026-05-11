@@ -161,13 +161,18 @@ retrieval should help most.
 
 | Benchmark | Setting | recall@10 vs naive |
 |---|---|---:|
-| HotpotQA dev, N=500 | KG mode | **+3.7 pts** |
-| MuSiQue dev, N=300, 2-hop | KG mode | **+1.7 pts** |
-| MuSiQue dev, N=300, 3-hop | KG mode | **+1.9 pts** |
+| **HotpotQA** dev, **N=7405** (full) | KG mode | **+4.92 pts** |
+| HotpotQA dev, N=500 | KG mode | +3.70 pts |
+| MuSiQue dev, N=300, 2-hop | KG mode | +1.7 pts |
+| MuSiQue dev, N=300, 3-hop | KG mode | +1.9 pts |
 | MuSiQue dev, N=300, 4-hop | KG mode | **+2.8 pts** |
 
-vs PPR-only ablation on the same KG: **+29.1 pts** on HotpotQA — the
-multi-component scoring is doing the work, not just "having a graph."
+vs PPR-only ablation on the same KG: **+29.1 pts** on HotpotQA (at N=500) —
+the multi-component scoring is doing the work, not just "having a graph."
+
+On the full N=7405 HotpotQA dev: hubmesh hits **74.2% supporting-fact
+recall@10** vs naive cosine's **69.3%**. The win is consistent at
+recall@2 (+1.1) and recall@5 (+4.4) too.
 
 Latency: **~22 ms** mean / 26 ms p95 per query on a 7K-node KG (after PPR
 matrix caching).
