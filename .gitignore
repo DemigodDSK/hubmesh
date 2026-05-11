@@ -17,3 +17,4 @@ experiments_*.log
 chroma_data/
 qdrant_data/
 LAUNCH_POST_*.md
+experiments/
