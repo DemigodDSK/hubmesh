@@ -31,7 +31,7 @@ that line with two contributions:
    just truncating top-k.
 
 The multi-component scoring pattern is adapted from the NNSI framework
-([Naidu Dsk, iComp 2025](https://example.invalid)) for SDN topology
+(Naidu Dsk, ICOMP'25 — to appear) for SDN topology
 optimization, repurposed here for retrieval planning.
 
 ## Quickstart
@@ -249,9 +249,11 @@ and additional multi-hop benchmarks are tracked as
 
 The multi-component scoring pattern is adapted from the **Network Node Significance
 Index (NNSI)** framework introduced in
-[Naidu Dsk, "A Framework for Improving Network Topology Based on Graph
-Theory in Software-Defined Networking", iComp 2025](#) — repurposed here from
-SDN topology optimization to retrieval planning.
+Naidu Dsk, "A Framework for Improving Network Topology Based on Graph
+Theory in Software-Defined Networking", 26th International Conference on
+Internet Computing & IoT (ICOMP'25), Las Vegas, July 2025 — proceedings
+to appear. Repurposed here from SDN topology optimization to retrieval
+planning.
 
 ## License
 
