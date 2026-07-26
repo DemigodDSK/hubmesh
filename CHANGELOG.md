@@ -4,6 +4,32 @@ All notable changes to **hubmesh** are documented here. The format is loosely
 based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the
 project follows [SemVer](https://semver.org/) starting from 0.1.0.
 
+## [0.3.0] — 2026-07-26
+
+### Added
+- **hubmesh-mcp.** `hubmesh.mcp_server` + `hubmesh-mcp` console script
+  (`pip install "hubmesh[mcp]"`): hubmesh as eight deterministic MCP
+  operator tools — `index_corpus`, `retrieve` (with the v0.2
+  `seed_entities` / `exclude_docs` door), `resolve_entities`,
+  `entity_neighbors`, `path_between`, `get_document`, `graph_stats`,
+  `list_corpora`. The calling agent plays the solver — decomposing
+  multi-hop questions and steering each hop — while the server makes
+  zero LLM calls: every tool is numpy/networkx work, token-free and
+  ~milliseconds after indexing. Responses are token-lean (snippets +
+  ids; full text via `get_document`).
+- **CorpusManager** (`hubmesh.corpus`, exported at top level): named
+  corpora persisted to plain JSON/NPZ under `~/.hubmesh/corpora`
+  (`HUBMESH_CORPORA_ROOT` overrides) — no binary object serialisation,
+  so corpus directories are inspectable and loading one can never
+  execute code. Planners are cached per corpus with the precomputed
+  PPR transition matrix.
+
+### Tests
+- 29 passing (4 new: KG dict round-trip, build/persist/reload/retrieve
+  with the seed door, corpus listing, missing-corpus error). Live MCP
+  stdio smoke-verified: a client walked a 3-hop chain over the
+  protocol, answer doc ranked first.
+
 ## [0.2.0] — 2026-07-25
 
 ### Added

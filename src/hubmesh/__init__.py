@@ -12,10 +12,11 @@ Public API:
 from .types import Document, RetrievalResult, ReasoningPath, ScoredDocument
 from .planner import Planner, PlannerConfig
 from .chunking import chunk_by_sentences, chunk_by_chars, chunk_documents
+from .corpus import CorpusManager
 
 __all__ = [
     "Document", "RetrievalResult", "ReasoningPath", "ScoredDocument",
-    "Planner", "PlannerConfig",
+    "Planner", "PlannerConfig", "CorpusManager",
     "chunk_by_sentences", "chunk_by_chars", "chunk_documents",
 ]
-__version__ = "0.2.0"
+__version__ = "0.3.0"

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "hubmesh"
-version = "0.2.0"
+version = "0.3.0"
 description = "Centrality-aware GraphRAG retrieval planner — drop-in layer over any vector DB"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -36,9 +36,13 @@ qdrant = ["qdrant-client>=1.10"]
 chroma = ["chromadb>=0.5"]
 kg = ["spacy>=3.7"]
 linker = ["sentence-transformers>=3.0"]
+mcp = ["mcp>=1.0", "spacy>=3.7", "sentence-transformers>=3.0"]
 all = ["qdrant-client>=1.10", "chromadb>=0.5",
        "spacy>=3.7", "sentence-transformers>=3.0",
-       "datasets>=2.18", "tqdm>=4.66"]
+       "datasets>=2.18", "tqdm>=4.66", "mcp>=1.0"]
+
+[project.scripts]
+hubmesh-mcp = "hubmesh.mcp_server:main"
 
 [project.urls]
 Homepage = "https://github.com/DemigodDSK/hubmesh"

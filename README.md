@@ -138,6 +138,25 @@ Seed mentions resolve through the alias index, so free-text entity names
 work. The query path stays deterministic and LLM-free — the planning
 intelligence lives in the caller.
 
+### MCP server: plug hubmesh into any agent
+
+```bash
+pip install "hubmesh[mcp]"
+python -m spacy download en_core_web_sm
+```
+
+```json
+{"mcpServers": {"hubmesh": {"command": "hubmesh-mcp"}}}
+```
+
+Exposes the planner as deterministic operator tools over stdio —
+`index_corpus`, `retrieve` (seed-steerable, as above), `resolve_entities`,
+`entity_neighbors`, `path_between`, `get_document`, `graph_stats`,
+`list_corpora`. Your agent is the solver: it decomposes the question,
+reads each hop, and aims the next one; the server answers in
+milliseconds with zero LLM calls. Corpora persist as plain JSON/NPZ
+under `~/.hubmesh/corpora`.
+
 ### Chunking long documents
 
 ```python
@@ -216,10 +235,11 @@ python benchmarks/profile_query.py        # latency profile
 
 ## Status
 
-Pre-alpha (v0.2.0). Core algorithms implemented and validated; adapters for
+Pre-alpha (v0.3.0). Core algorithms implemented and validated; adapters for
 in-memory, Qdrant, and Chroma; entity-linked KG with both spaCy NER and
 LLM-based extraction (both linker-aware); alias-indexed entity resolution;
 agent-driven iterative multi-hop via `seed_entities` / `exclude_docs`;
+MCP operator server (`hubmesh-mcp`) with JSON/NPZ corpus persistence;
 document chunking; reasoning-path explanation; PPR-cache latency
 optimisation. Pinecone / pgvector / Weaviate adapters
 and additional multi-hop benchmarks are tracked as
