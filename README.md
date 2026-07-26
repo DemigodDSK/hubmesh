@@ -96,11 +96,17 @@ for path in result.reasoning:
 
 ```python
 from hubmesh.kg_llm import build_entity_kg_llm
+from hubmesh.entity_linker import EmbeddingLinker, make_st_embedder
 
 def llm(prompt):  # provider-agnostic — bring your own
     return your_llm_call(prompt)
 
 kg = build_entity_kg_llm(docs, llm=llm, cache_path="kg_cache.json")
+
+# optional: cross-document entity dedup — same Linker protocol as the spaCy path
+kg = build_entity_kg_llm(docs, llm=llm, cache_path="kg_cache.json",
+                         linker=EmbeddingLinker(embed=make_st_embedder()))
+
 planner = Planner(store=store, kg=kg)
 ```
 
@@ -114,6 +120,23 @@ from hubmesh.entity_linker import EmbeddingLinker, make_st_embedder
 linker = EmbeddingLinker(embed=make_st_embedder(), threshold=0.82)
 kg = build_entity_kg(docs, linker=linker)
 ```
+
+### Iterative multi-hop: let your agent drive
+
+```python
+r1 = planner.retrieve(query=question, top_k=5)
+
+# your agent reads r1, spots the bridge entity, then aims hop 2 at it:
+r2 = planner.retrieve(
+    query=question, top_k=5,
+    seed_entities=["Nimbus Analytics"],           # merged with the query's own seeds
+    exclude_docs=[s.doc.id for s in r1.sources],  # don't re-retrieve consumed docs
+)
+```
+
+Seed mentions resolve through the alias index, so free-text entity names
+work. The query path stays deterministic and LLM-free — the planning
+intelligence lives in the caller.
 
 ### Chunking long documents
 
@@ -159,6 +182,9 @@ retrieval and a HippoRAG-style PPR-only ablation that uses the same KG.
 The win grows with hop count — exactly the regime where graph-structural
 retrieval should help most.
 
+> Measured on v0.1.1, before the v0.2 alias index changed query-side seed
+> resolution for rebuilt KGs; re-run pending.
+
 | Benchmark | Setting | recall@10 vs naive |
 |---|---|---:|
 | **HotpotQA** dev, **N=7405** (full) | KG mode | **+4.92 pts** |
@@ -189,10 +215,12 @@ python benchmarks/profile_query.py        # latency profile
 
 ## Status
 
-Pre-alpha (v0.1.0). Core algorithms implemented and validated; adapters for
+Pre-alpha (v0.2.0). Core algorithms implemented and validated; adapters for
 in-memory, Qdrant, and Chroma; entity-linked KG with both spaCy NER and
-LLM-based extraction; document chunking; reasoning-path explanation;
-PPR-cache latency optimisation. Pinecone / pgvector / Weaviate adapters
+LLM-based extraction (both linker-aware); alias-indexed entity resolution;
+agent-driven iterative multi-hop via `seed_entities` / `exclude_docs`;
+document chunking; reasoning-path explanation; PPR-cache latency
+optimisation. Pinecone / pgvector / Weaviate adapters
 and additional multi-hop benchmarks are tracked as
 [good first issues](https://github.com/DemigodDSK/hubmesh/issues).
 

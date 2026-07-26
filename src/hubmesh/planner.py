@@ -106,6 +106,8 @@ class Planner:
         top_k: int = 10,
         budget_tokens: int = 4000,
         query_vec: np.ndarray | None = None,
+        seed_entities: list[str] | None = None,
+        exclude_docs: list[str] | None = None,
     ) -> RetrievalResult:
         """Retrieve top_k documents.
 
@@ -113,6 +115,17 @@ class Planner:
         For batched benchmarking where embeddings are precomputed, pass the
         text as `query` and the precomputed vector as `query_vec` to skip
         re-embedding.
+
+        `seed_entities` (KG mode only): extra entity mentions to use as
+        PPR teleport seeds, *merged* with the seeds extracted from the
+        query itself. This is the door for iterative multi-hop: a caller
+        (an agent, or any loop) passes entities it read in hop N-1 to
+        steer hop N's diffusion. Mentions are resolved with
+        `EntityKG.query_entity_nodes`, so free-text names work.
+
+        `exclude_docs`: doc ids to drop from candidates — pass documents
+        already consumed by earlier hops so each hop explores new ground
+        instead of re-retrieving what the caller has read.
         """
         # 0. resolve text + vector
         if isinstance(query, np.ndarray):
@@ -130,7 +143,16 @@ class Planner:
 
         # Route to KG-mode if a knowledge graph is attached, else kNN mode.
         if self.kg is not None and qtext:
-            return self._retrieve_kg(qtext, qvec, top_k, budget_tokens)
+            return self._retrieve_kg(
+                qtext, qvec, top_k, budget_tokens,
+                seed_entities=seed_entities, exclude_docs=exclude_docs,
+            )
+
+        if seed_entities is not None:
+            raise ValueError(
+                "seed_entities requires KG mode — construct the Planner "
+                "with kg= and pass the query as text.")
+        exclude = set(exclude_docs or ())
 
         # 1. first-pass ANN
         seeds_with_sim = self.store.search(qvec, top_k=self.config.seed_top_k)
@@ -179,7 +201,9 @@ class Planner:
         )
 
         # Pull docs and rank
-        ordered = sorted(composite.items(), key=lambda kv: -kv[1])
+        ordered = [(n, s) for n, s in
+                   sorted(composite.items(), key=lambda kv: -kv[1])
+                   if n not in exclude]
         scored: list[ScoredDocument] = []
         for rank, (nid, score) in enumerate(ordered):
             try:
@@ -224,6 +248,8 @@ class Planner:
     def _retrieve_kg(
         self, qtext: str, qvec: np.ndarray,
         top_k: int, budget_tokens: int,
+        seed_entities: list[str] | None = None,
+        exclude_docs: list[str] | None = None,
     ) -> RetrievalResult:
         """Retrieval that uses the entity-linked KG as the routing graph
         instead of a kNN proximity graph."""
@@ -234,7 +260,15 @@ class Planner:
 
         # 1. extract query entities, match to KG nodes
         q_mentions = extract_query_entities(qtext, nlp=self._nlp)
-        ppr_seeds = kg.query_entity_nodes(q_mentions)
+        ner_seeds = kg.query_entity_nodes(q_mentions)
+
+        # Caller-injected seeds — merge semantics: they join the query's
+        # own seeds rather than replacing them, so the question's anchors
+        # keep contributing teleport mass while the caller steers the
+        # diffusion toward entities discovered in earlier hops.
+        injected = (kg.query_entity_nodes(seed_entities)
+                    if seed_entities else [])
+        ppr_seeds = list(dict.fromkeys([*injected, *ner_seeds]))
 
         # If query has no extractable entities OR none match the KG, fall back
         # to entities mentioned by the top cosine-similar passages. Using
@@ -259,7 +293,9 @@ class Planner:
         # 3. Score each candidate document. Vectorise cosine over the whole
         #    doc set in one matmul rather than per-doc Python loop (~3×
         #    speed-up on the doc-scoring stage).
-        doc_ids = [n[4:] for n in kg.graph.nodes if n.startswith("doc:")]
+        exclude = set(exclude_docs or ())
+        doc_ids = [n[4:] for n in kg.graph.nodes
+                   if n.startswith("doc:") and n[4:] not in exclude]
         if not doc_ids:
             doc_relevance, doc_structural = {}, {}
         else:
@@ -335,6 +371,8 @@ class Planner:
                 "mode": "kg",
                 "query_mentions": q_mentions,
                 "ppr_seeds": ppr_seeds[:10],
+                "injected_seeds": injected[:10],
+                "excluded_docs": len(exclude),
                 "kg_nodes": kg.graph.number_of_nodes(),
                 "kg_edges": kg.graph.number_of_edges(),
             },

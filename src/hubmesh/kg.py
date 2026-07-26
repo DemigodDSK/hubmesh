@@ -49,16 +49,32 @@ class EntityKG:
     entity_to_docs: dict[str, set[str]]              # entity node id → doc_ids
     entity_canonical_to_node: dict[str, str]         # canonical → node id
     entity_node_to_label: dict[str, str]             # node id → display label
+    # canonicalised surface form (any alias seen in the corpus) → node id.
+    # Only holds nodes actually present in the graph, so an alias hit never
+    # yields a phantom seed. Empty on KGs built before v0.2.
+    alias_to_node: dict[str, str] = field(default_factory=dict)
+
+    def __setstate__(self, state):
+        # KGs the user persisted before v0.2 were serialised without
+        # alias_to_node, and deserialisation restores attributes directly
+        # (skipping __init__, so the field default never runs). Backfill
+        # an empty index so those KGs behave exactly as before v0.2.
+        self.__dict__.update(state)
+        self.__dict__.setdefault("alias_to_node", {})
 
     def query_entity_nodes(
         self, mentions: list[str], allow_substring: bool = True,
     ) -> list[str]:
-        """Match raw mentions to KG entity nodes. Tries exact canonicalised
-        match first; if `allow_substring`, falls back to substring match."""
+        """Match raw mentions to KG entity nodes. Alias-index lookup first
+        (O(1), graph-backed), then exact canonicalised match; if
+        `allow_substring`, falls back to substring match."""
         out = []
         for m in mentions:
             c = canonicalize(m)
             if not c:
+                continue
+            if c in self.alias_to_node:
+                out.append(self.alias_to_node[c])
                 continue
             if c in self.entity_canonical_to_node:
                 out.append(self.entity_canonical_to_node[c])
@@ -209,12 +225,33 @@ def build_entity_kg(
                 else:
                     G.add_edge(a, b, kind="co_occurs", weight=1)
 
+    # Alias index: every surface form seen for an entity, canonicalised,
+    # → its graph node. Gives query_entity_nodes an O(1) lookup where the
+    # substring fallback would scan; absorbed short forms ("Derrickson")
+    # resolve to their absorber ("scott derrickson") via the merged
+    # display sets. Two passes so a display alias can never shadow a
+    # *different* entity's exact canonical name; sorted iteration keeps
+    # alias-vs-alias collisions deterministic across processes.
+    alias_to_node: dict[str, str] = {}
+    for c, nid in entity_canonical_to_node.items():
+        if nid in G:
+            alias_to_node[c] = nid
+    for c, displays in sorted(canonical_to_displays.items()):
+        nid = entity_canonical_to_node.get(c)
+        if nid is None or nid not in G:
+            continue
+        for m in sorted(displays):
+            mc = canonicalize(m)
+            if mc:
+                alias_to_node.setdefault(mc, nid)
+
     return EntityKG(
         graph=G,
         doc_to_entities=doc_to_entities,
         entity_to_docs=dict(entity_to_docs),
         entity_canonical_to_node=entity_canonical_to_node,
         entity_node_to_label=entity_node_to_label,
+        alias_to_node=alias_to_node,
     )
 
 

@@ -109,6 +109,7 @@ def build_entity_kg_llm(
     cache_path: str | Path | None = None,
     max_workers: int = 1,
     progress: bool = False,
+    linker=None,
 ) -> EntityKG:
     """Build the KG by extracting (subject, predicate, object) triples
     from each document via an LLM.
@@ -119,6 +120,12 @@ def build_entity_kg_llm(
 
     `cache_path` (optional) JSON file caching extracted triples by
     passage hash — strongly recommended for large corpora.
+
+    `linker` (optional) — same contract as `build_entity_kg`'s linker=
+    argument: an `entity_linker.Linker` that canonicalises mentions
+    across the whole corpus. Without it, triple arguments get only the
+    bare `canonicalize()` treatment, so "USA" and "United States" stay
+    separate entities even when they co-refer.
     """
     template = prompt_template or DEFAULT_TRIPLE_PROMPT
     cache: dict[str, list] = {}
@@ -171,11 +178,22 @@ def build_entity_kg_llm(
 
     canonical_to_displays: dict[str, set[str]] = defaultdict(set)
     raw_to_canon: dict[str, str] = {}
-    for m in set(all_mentions):
-        c = canonicalize(m)
-        if c:
-            raw_to_canon[m] = c
-            canonical_to_displays[c].add(m)
+    if linker is not None:
+        # Cross-document linking — same path as build_entity_kg's linker=
+        # argument. Closes the gap where LLM-extracted mentions bypassed
+        # the Linker protocol and got weaker dedup than the spaCy path.
+        link_map = linker.link(set(all_mentions))
+        for m in set(all_mentions):
+            c = link_map.get(m, canonicalize(m))
+            if c:
+                raw_to_canon[m] = c
+                canonical_to_displays[c].add(m)
+    else:
+        for m in set(all_mentions):
+            c = canonicalize(m)
+            if c:
+                raw_to_canon[m] = c
+                canonical_to_displays[c].add(m)
 
     entity_canonical_to_node: dict[str, str] = {
         c: _entity_node(c) for c in canonical_to_displays
@@ -222,10 +240,28 @@ def build_entity_kg_llm(
                            weight=1, predicates=[p])
         doc_to_entities[doc_id] = ent_nodes
 
+    # Alias index — mirrors build_entity_kg: every surface form seen in
+    # the triples, canonicalised, → its graph node (graph-backed only).
+    # Two passes so a display alias can never shadow a different entity's
+    # exact canonical name; sorted iteration for cross-process determinism.
+    alias_to_node: dict[str, str] = {}
+    for c, nid in entity_canonical_to_node.items():
+        if nid in G:
+            alias_to_node[c] = nid
+    for c, displays in sorted(canonical_to_displays.items()):
+        nid = entity_canonical_to_node.get(c)
+        if nid is None or nid not in G:
+            continue
+        for m in sorted(displays):
+            mc = canonicalize(m)
+            if mc:
+                alias_to_node.setdefault(mc, nid)
+
     return EntityKG(
         graph=G,
         doc_to_entities=doc_to_entities,
         entity_to_docs=dict(entity_to_docs),
         entity_canonical_to_node=entity_canonical_to_node,
         entity_node_to_label=entity_node_to_label,
+        alias_to_node=alias_to_node,
     )

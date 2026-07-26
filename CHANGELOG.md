@@ -4,6 +4,45 @@ All notable changes to **hubmesh** are documented here. The format is loosely
 based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the
 project follows [SemVer](https://semver.org/) starting from 0.1.0.
 
+## [0.2.0] — 2026-07-25
+
+### Added
+- **Iterative multi-hop door.** `Planner.retrieve` accepts `seed_entities`
+  (extra PPR teleport seeds, *merged* with the query's own NER seeds) and
+  `exclude_docs` (drop already-consumed documents). Any agent or outer
+  loop can now run plan-driven retrieval — hop N steered by entities read
+  in hop N-1 — while the query path stays deterministic and LLM-free.
+  `seed_entities` is KG-mode only (raises `ValueError` otherwise);
+  `exclude_docs` works in both modes. On the synthetic 3-hop chain in
+  `examples/agent_hop_demo.py`, the answer doc moves from rank 5
+  (single-shot) to rank 1 (seed-injected hops) with no change to query
+  text — run the script to reproduce.
+- **Alias index.** `EntityKG.alias_to_node` retains every canonicalised
+  surface form seen at build time → its graph node. `query_entity_nodes`
+  checks it first: O(1), never returns a node absent from the graph, and
+  resolves absorbed short forms ("Derrickson" → "scott derrickson").
+  Exact canonical names are bound before display-derived aliases, so an
+  alias can never shadow a different entity's exact name. KGs persisted
+  before 0.2 restore with an empty index (via a `__setstate__` shim) and
+  behave exactly as before.
+- **Linker support in LLM extraction.** `build_entity_kg_llm(..., linker=)`
+  routes triple mentions through the same `Linker` protocol as the spaCy
+  path — closing the gap where LLM-extracted entities got weaker
+  cross-document dedup than heuristic ones.
+
+### Changed
+- Query-side entity resolution for KGs **rebuilt** on 0.2.0 can differ
+  from 0.1.x wherever the alias index now answers directly (absorbed
+  short forms, display variants). This is the intended recall
+  improvement, but it means the published benchmark numbers were
+  measured on v0.1.1 — BENCHMARKS.md is annotated; re-run pending.
+
+### Tests
+- 25 passing (12 new: seed merge semantics + dedup, exclusion in both
+  modes, kNN-mode guard, linker routing, alias resolution, alias-shadow
+  parity, phantom-node guard, pre-0.2 state restore). All new tests run
+  without spaCy models or an LLM.
+
 ## [0.1.1] — 2026-05-10
 
 ### Fixed

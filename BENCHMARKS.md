@@ -3,6 +3,11 @@
 Detailed empirical evaluation of `hubmesh` against simpler retrieval baselines
 on multi-hop QA. Reproduce with the scripts in `benchmarks/`.
 
+> **Version note:** all numbers below were measured on **v0.1.1**. The v0.2.0
+> alias index changes query-side entity resolution for KGs rebuilt on 0.2
+> (absorbed short forms and display variants now resolve directly), so a
+> re-run may shift the deltas; re-run pending.
+
 ---
 
 ## TL;DR
