@@ -33,9 +33,11 @@ project follows [SemVer](https://semver.org/) starting from 0.1.0.
 ### Changed
 - Query-side entity resolution for KGs **rebuilt** on 0.2.0 can differ
   from 0.1.x wherever the alias index now answers directly (absorbed
-  short forms, display variants). This is the intended recall
-  improvement, but it means the published benchmark numbers were
-  measured on v0.1.1 — BENCHMARKS.md is annotated; re-run pending.
+  short forms, display variants). Confirmed as a recall improvement by
+  re-run: HotpotQA N=500 recall@10 +3.7→**+4.0** vs naive and
+  +29.1→**+29.8** vs PPR-only (recall@2 −0.4, disclosed); MuSiQue
+  2/3/4-hop +1.7/+1.9/+2.8 → **+3.0/+2.6/+3.4**. Full-dev N=7405
+  numbers remain v0.1.1 (not re-run).
 
 ### Tests
 - 25 passing (12 new: seed merge semantics + dedup, exclusion in both

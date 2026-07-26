@@ -3,10 +3,15 @@
 Detailed empirical evaluation of `hubmesh` against simpler retrieval baselines
 on multi-hop QA. Reproduce with the scripts in `benchmarks/`.
 
-> **Version note:** all numbers below were measured on **v0.1.1**. The v0.2.0
-> alias index changes query-side entity resolution for KGs rebuilt on 0.2
-> (absorbed short forms and display variants now resolve directly), so a
-> re-run may shift the deltas; re-run pending.
+> **Version note:** the tables below were measured on **v0.1.1**.
+> **v0.2.0 re-run** (alias-indexed seed resolution; same harness, same
+> seed): HotpotQA N=500 recall@2/@5/@10 = 0.574/0.766/0.859 vs naive
+> 0.578/0.740/0.819 and PPR-only 0.345/0.494/0.561 — **+4.0 pts** vs
+> naive and **+29.8 pts** vs PPR-only at recall@10 (v0.1.1: +3.7/+29.1),
+> with a **−0.4 pt dip at recall@2** (disclosed). MuSiQue N=300
+> recall@10 vs naive: **+3.0 / +2.6 / +3.4 pts** at 2/3/4-hop (v0.1.1:
+> +1.7/+1.9/+2.8; growth no longer strictly monotonic, but 4-hop stays
+> the largest gain). Full-dev N=7405 has not been re-run.
 
 ---
 

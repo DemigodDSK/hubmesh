@@ -179,21 +179,22 @@ DB so you don't have to migrate.
 
 **Headline:** on multi-hop QA, hubmesh's KG mode beats both naive cosine
 retrieval and a HippoRAG-style PPR-only ablation that uses the same KG.
-The win grows with hop count — exactly the regime where graph-structural
+The win is largest at 4-hop — exactly the regime where graph-structural
 retrieval should help most.
-
-> Measured on v0.1.1, before the v0.2 alias index changed query-side seed
-> resolution for rebuilt KGs; re-run pending.
 
 | Benchmark | Setting | recall@10 vs naive |
 |---|---|---:|
-| **HotpotQA** dev, **N=7405** (full) | KG mode | **+4.92 pts** |
-| HotpotQA dev, N=500 | KG mode | +3.70 pts |
-| MuSiQue dev, N=300, 2-hop | KG mode | +1.7 pts |
-| MuSiQue dev, N=300, 3-hop | KG mode | +1.9 pts |
-| MuSiQue dev, N=300, 4-hop | KG mode | **+2.8 pts** |
+| **HotpotQA** dev, **N=7405** (full) | KG mode | **+4.92 pts** † |
+| HotpotQA dev, N=500 | KG mode | +4.00 pts |
+| MuSiQue dev, N=300, 2-hop | KG mode | +3.0 pts |
+| MuSiQue dev, N=300, 3-hop | KG mode | +2.6 pts |
+| MuSiQue dev, N=300, 4-hop | KG mode | **+3.4 pts** |
 
-vs PPR-only ablation on the same KG: **+29.1 pts** on HotpotQA (at N=500) —
+† measured on v0.1.1; all other rows re-measured on v0.2.0
+(alias-indexed seed resolution), which improved every recall@5/@10
+delta over v0.1.1. Disclosed: HotpotQA N=500 recall@2 dipped −0.4 pts.
+
+vs PPR-only ablation on the same KG: **+29.8 pts** on HotpotQA (at N=500) —
 the multi-component scoring is doing the work, not just "having a graph."
 
 On the full N=7405 HotpotQA dev: hubmesh hits **74.2% supporting-fact
