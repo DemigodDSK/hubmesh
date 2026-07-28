@@ -71,8 +71,8 @@ def retrieve(
     corpus: str,
     query: str,
     top_k: int = 8,
-    seed_entities: list[str] | None = None,
-    exclude_docs: list[str] | None = None,
+    seed_entities: list[str] = [],
+    exclude_docs: list[str] = [],
 ) -> dict:
     """Graph-aware retrieval: entity seeds + Personalized PageRank over
     the corpus knowledge graph, fused with cosine similarity.
@@ -83,10 +83,14 @@ def retrieve(
     query's own entities) and the doc ids you already consumed as
     `exclude_docs` (so the next hop explores new ground). Returns
     snippets — use get_document for full text."""
+    # Empty-list defaults (not None) keep the advertised JSON schema free
+    # of anyOf/null unions — strict connector executors (observed with
+    # Perplexity) refuse to compile union-typed tool parameters and fail
+    # with "Error during tool execution" without ever calling the server.
     planner = _mgr().planner(corpus)
     res = planner.retrieve(query=query, top_k=top_k,
-                           seed_entities=seed_entities,
-                           exclude_docs=exclude_docs)
+                           seed_entities=seed_entities or None,
+                           exclude_docs=exclude_docs or None)
     return {
         "sources": [{
             "id": s.doc.id,
