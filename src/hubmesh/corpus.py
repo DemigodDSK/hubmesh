@@ -16,6 +16,7 @@ query, same as constructing a Planner by hand.
 """
 from __future__ import annotations
 import json
+import threading
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable
@@ -78,6 +79,8 @@ class CorpusManager:
     embed: Callable[[str], np.ndarray] | None = None
     nlp: object | None = None
     _planners: dict = field(default_factory=dict, repr=False)
+    _embed_lock: threading.Lock = field(default_factory=threading.Lock,
+                                        repr=False)
 
     def __post_init__(self):
         self.root = Path(self.root).expanduser()
@@ -86,12 +89,63 @@ class CorpusManager:
 
     def _get_embed(self) -> Callable[[str], np.ndarray]:
         if self.embed is None:
-            import os
-            from .entity_linker import make_st_embedder
-            model = os.environ.get("HUBMESH_EMBED_MODEL", "all-MiniLM-L6-v2")
-            batched = make_st_embedder(model)
-            self.embed = lambda t: batched([t])[0]
+            with self._embed_lock:
+                if self.embed is None:
+                    import os
+                    from .entity_linker import make_st_embedder
+                    model = os.environ.get("HUBMESH_EMBED_MODEL",
+                                           "all-MiniLM-L6-v2")
+                    # Load from the local HF cache without the hub
+                    # freshness-check round-trips that dominate cold
+                    # start on slow networks; fall back online for the
+                    # first-ever model download.
+                    set_offline = "HF_HUB_OFFLINE" not in os.environ
+                    if set_offline:
+                        os.environ["HF_HUB_OFFLINE"] = "1"
+                    try:
+                        batched = make_st_embedder(model)
+                    except Exception:
+                        if not set_offline:
+                            raise
+                        os.environ.pop("HF_HUB_OFFLINE", None)
+                        set_offline = False
+                        batched = make_st_embedder(model)
+                    finally:
+                        if set_offline:
+                            os.environ.pop("HF_HUB_OFFLINE", None)
+                    self.embed = lambda t: batched([t])[0]
         return self.embed
+
+    def warmup(self, corpora: bool = True) -> dict:
+        """Front-load the expensive lazy imports — embedding model,
+        spaCy pipeline, and (with `corpora=True`) every persisted
+        corpus's planner including its PPR matrix — so the FIRST query
+        doesn't pay the cold start. Connector clients (Perplexity and
+        friends) drop tool calls after ~5-15s; cold start alone can
+        exceed that. Best-effort: a component that fails reports in the
+        returned dict instead of raising, so a warmup problem never
+        takes a server down with it."""
+        report: dict[str, str] = {}
+        try:
+            self._get_embed()
+            report["embedder"] = "ok"
+        except Exception as e:
+            report["embedder"] = f"failed: {e}"
+        if self.nlp is None:
+            try:
+                import spacy
+                self.nlp = spacy.load("en_core_web_sm")
+                report["spacy"] = "ok"
+            except Exception as e:
+                report["spacy"] = f"failed: {e}"
+        if corpora:
+            for name in self.list():
+                try:
+                    self.planner(name)
+                    report[f"corpus:{name}"] = "ok"
+                except Exception as e:
+                    report[f"corpus:{name}"] = f"failed: {e}"
+        return report
 
     # ---- build / save ----------------------------------------------
 

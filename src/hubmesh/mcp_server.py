@@ -24,7 +24,16 @@ from mcp.server.fastmcp import FastMCP
 
 from .corpus import CorpusManager
 
-mcp = FastMCP("hubmesh")
+mcp = FastMCP(
+    "hubmesh",
+    instructions=(
+        "Deterministic graph-retrieval operators over named document "
+        "corpora. For multi-hop questions, iterate: retrieve, read the "
+        "snippets, then retrieve again passing the bridge entity you "
+        "discovered as seed_entities and the doc ids you already "
+        "consumed as exclude_docs."
+    ),
+)
 
 _manager: CorpusManager | None = None
 
@@ -200,6 +209,11 @@ def _load(corpus: str):
 
 
 def main():
+    import threading
+    # Warm up off the serving thread: the first tool call must not pay
+    # the ~5-10s model cold start — connector clients (e.g. Perplexity)
+    # drop SSE tool calls in exactly that window.
+    threading.Thread(target=lambda: _mgr().warmup(), daemon=True).start()
     mcp.run()
 
 

@@ -99,3 +99,22 @@ def test_missing_corpus_raises(tmp_path):
     mgr = CorpusManager(root=tmp_path, embed=_fake_embed)
     with pytest.raises(FileNotFoundError, match="no corpus"):
         mgr.load("nope")
+
+
+def test_warmup_preloads_planners(tmp_path):
+    """warmup() must leave every persisted corpus's planner (and its
+    PPR matrix) cached, so a server's first tool call pays ~ms, not
+    the cold start that trips connector-client timeouts."""
+    mgr = CorpusManager(root=tmp_path, embed=_fake_embed, nlp=FakeNLP())
+    mgr.build("demo", [{"id": k, "text": v} for k, v in _TEXTS.items()],
+              kg=_build_kg())
+    fresh = CorpusManager(root=tmp_path, embed=_fake_embed, nlp=FakeNLP())
+    report = fresh.warmup()
+    assert report["embedder"] == "ok"
+    assert report["corpus:demo"] == "ok"
+    assert "demo" in fresh._planners
+    # warmup is best-effort: a broken corpus reports, never raises
+    (tmp_path / "broken").mkdir()
+    (tmp_path / "broken" / "meta.json").write_text("{}")
+    report2 = fresh.warmup()
+    assert report2["corpus:broken"].startswith("failed")

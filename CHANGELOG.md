@@ -4,6 +4,24 @@ All notable changes to **hubmesh** are documented here. The format is loosely
 based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the
 project follows [SemVer](https://semver.org/) starting from 0.1.0.
 
+## [0.3.1] — 2026-07-28
+
+### Fixed
+- **MCP cold start** (field-reported from a real Perplexity × ngrok ×
+  supergateway integration — thank you). The first tool call lazily
+  loaded sentence-transformers, made ~a dozen HuggingFace hub
+  freshness-check round-trips, loaded spaCy, and built the PPR matrix:
+  measured 7.7s on a fast machine, worse on slow networks — enough to
+  trip connector clients' ~5-15s SSE timeouts mid-call. Now:
+  `hubmesh-mcp` warms everything up in a background thread at startup
+  (`CorpusManager.warmup()` — embedder, spaCy, every persisted
+  corpus's planner), the embedder loads from the local HF cache with
+  no network round-trips (online fallback for the first-ever
+  download), and the lazy embedder init is thread-safe. Measured first
+  tool call after warmup: **459ms** (was 7.7s).
+- FastMCP server now ships `instructions` teaching connecting agents
+  the iterative `seed_entities` / `exclude_docs` pattern.
+
 ## [0.3.0] — 2026-07-26
 
 ### Added

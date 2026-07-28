@@ -157,6 +157,11 @@ reads each hop, and aims the next one; the server answers in
 milliseconds with zero LLM calls. Corpora persist as plain JSON/NPZ
 under `~/.hubmesh/corpora`.
 
+The server warms up models and persisted corpora in the background at
+launch (~5-10s on first run), so tool calls stay fast from the start —
+relevant when fronting it with strict-timeout connector clients
+(Perplexity, etc.) via an SSE gateway.
+
 ### Chunking long documents
 
 ```python
