@@ -175,6 +175,10 @@ and hang tool calls; **supergateway is unnecessary** here and crashes
 on reconnect. `--allow-tunnel` accepts the tunnel's forwarded Host
 header — without it, proxied requests get 421 Misdirected Request.
 
+Full field report — setup, error decoder, a 9/9 test battery run
+through Perplexity, and two findings about reasoning-model behaviour —
+in [docs/perplexity.md](docs/perplexity.md).
+
 ### Chunking long documents
 
 ```python
