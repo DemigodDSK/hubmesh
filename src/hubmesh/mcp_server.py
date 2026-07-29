@@ -155,10 +155,15 @@ def entity_neighbors(corpus: str, entity: str, limit: int = 20) -> dict:
 
 
 @mcp.tool()
-def path_between(corpus: str, entity_a: str, entity_b: str) -> dict:
-    """Shortest path between two entities through the entity-document
-    graph — shows the document chain that connects them. Empty result
-    means no connection exists in this corpus."""
+def path_between(corpus: str, entity_a: str, entity_b: str,
+                 k_paths: int = 3) -> dict:
+    """Connection paths between two entities through the entity-document
+    graph — up to `k_paths` paths, shortest first. INTERPRETATION
+    CAUTION: the shortest path can ride an incidental co-mention (two
+    names in the same sentence); longer paths with more `via_documents`
+    often reflect the more meaningful chain. Report the nature of the
+    connection, not just its existence."""
+    from itertools import islice
     import networkx as nx
     _, kg = _load(corpus)
     a = kg.query_entity_nodes([entity_a])
@@ -166,16 +171,30 @@ def path_between(corpus: str, entity_a: str, entity_b: str) -> dict:
     if not a or not b:
         missing = entity_a if not a else entity_b
         return {"error": f"no entity matching {missing!r} in {corpus!r}"}
+    k = max(1, min(k_paths, 10))
     try:
-        path = nx.shortest_path(kg.graph, a[0], b[0])
+        # Keep DISTINCT routes, not detour-variants of one shortcut: a
+        # candidate whose intermediates contain all of an already-kept
+        # path's intermediates is the same bridge with extra stops.
+        found: list = []
+        for path in islice(nx.shortest_simple_paths(kg.graph, a[0], b[0]),
+                           50):
+            mids = set(path[1:-1])
+            if any(set(p[1:-1]) and set(p[1:-1]) <= mids for p in found):
+                continue
+            found.append(path)
+            if len(found) >= k:
+                break
     except nx.NetworkXNoPath:
-        return {"path": [], "connected": False}
-    return {"connected": True, "path": [
-        {"node": n,
-         "label": (kg.entity_node_to_label.get(n, n)
-                   if n.startswith("ent:") else n[4:])}
-        for n in path
-    ]}
+        return {"paths": [], "connected": False}
+    return {"connected": True, "paths": [{
+        "nodes": [{"node": n,
+                   "label": (kg.entity_node_to_label.get(n, n)
+                             if n.startswith("ent:") else n[4:])}
+                  for n in path],
+        "hops": len(path) - 1,
+        "via_documents": sum(1 for n in path if n.startswith("doc:")),
+    } for path in found]}
 
 
 @mcp.tool()
@@ -213,12 +232,37 @@ def _load(corpus: str):
 
 
 def main():
+    import argparse
     import threading
+    ap = argparse.ArgumentParser(
+        prog="hubmesh-mcp",
+        description="hubmesh MCP operator server. stdio by default; "
+                    "--transport sse serves HTTP+SSE natively (no "
+                    "gateway process needed).")
+    ap.add_argument("--transport", choices=["stdio", "sse"],
+                    default="stdio")
+    ap.add_argument("--host", default="127.0.0.1")
+    ap.add_argument("--port", type=int, default=8000)
+    ap.add_argument("--allow-tunnel", action="store_true",
+                    help="accept forwarded Host headers (disables "
+                         "DNS-rebinding protection) — required behind "
+                         "ngrok-style tunnels, which otherwise get 421 "
+                         "Misdirected Request")
+    args = ap.parse_args()
+
+    if args.transport == "sse":
+        mcp.settings.host = args.host
+        mcp.settings.port = args.port
+    if args.allow_tunnel:
+        from mcp.server.transport_security import TransportSecuritySettings
+        mcp.settings.transport_security = TransportSecuritySettings(
+            enable_dns_rebinding_protection=False)
+
     # Warm up off the serving thread: the first tool call must not pay
     # the ~5-10s model cold start — connector clients (e.g. Perplexity)
     # drop SSE tool calls in exactly that window.
     threading.Thread(target=lambda: _mgr().warmup(), daemon=True).start()
-    mcp.run()
+    mcp.run(transport=args.transport)
 
 
 if __name__ == "__main__":

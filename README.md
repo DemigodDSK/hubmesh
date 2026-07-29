@@ -159,8 +159,21 @@ under `~/.hubmesh/corpora`.
 
 The server warms up models and persisted corpora in the background at
 launch (~5-10s on first run), so tool calls stay fast from the start —
-relevant when fronting it with strict-timeout connector clients
-(Perplexity, etc.) via an SSE gateway.
+relevant for strict-timeout connector clients (Perplexity, etc.).
+
+For web-based connector clients, serve SSE natively — no gateway
+process needed:
+
+```bash
+hubmesh-mcp --transport sse --port 8000 --allow-tunnel
+ngrok http 8000     # paste https://<your-url>/sse into the connector
+```
+
+Tunnel field notes (from a live Perplexity integration): **ngrok works**
+(free tier included); **cloudflared quick tunnels buffer SSE bodies**
+and hang tool calls; **supergateway is unnecessary** here and crashes
+on reconnect. `--allow-tunnel` accepts the tunnel's forwarded Host
+header — without it, proxied requests get 421 Misdirected Request.
 
 ### Chunking long documents
 

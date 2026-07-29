@@ -4,6 +4,35 @@ All notable changes to **hubmesh** are documented here. The format is loosely
 based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the
 project follows [SemVer](https://semver.org/) starting from 0.1.0.
 
+## [0.3.2] — 2026-07-28
+
+### Added
+- **`hubmesh-mcp` CLI flags.** `--transport sse --host --port` serve
+  HTTP+SSE natively (no gateway process), and `--allow-tunnel` accepts
+  forwarded Host headers behind ngrok-style tunnels (without it,
+  proxied requests get 421 Misdirected Request). Field-driven: the
+  live Perplexity integration needed an inline Python incantation for
+  all of this.
+- **`path_between` multi-path with route diversity.** Returns up to
+  `k_paths` (default 3) *distinct routes* — detour-variants of an
+  already-reported bridge are filtered out — each annotated with
+  `hops` and `via_documents`; the tool description now warns that the
+  shortest path can ride an incidental co-mention. Field observation
+  behind it: a 2-hop path through a shared place-name beat the
+  meaningful 4-hop acquisition/founder chain, and without the
+  diversity filter the top-3 were all variants of the same shortcut.
+  Validated live: both the shortcut and the meaningful chain now
+  surface, letting the calling agent pick the semantically right one.
+
+### Docs
+- README: native-SSE + tunnel recipe with field notes (ngrok works;
+  cloudflared quick tunnels buffer SSE; supergateway crashes on
+  reconnect).
+
+### Tests
+- 34 passing locally (4 new MCP tool-function tests, auto-skipped
+  where the mcp SDK isn't installed, e.g. CI).
+
 ## [0.3.1] — 2026-07-28
 
 ### Fixed
