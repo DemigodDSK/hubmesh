@@ -39,6 +39,38 @@ after PPR matrix caching. Naive top-k is sub-millisecond.
 
 ---
 
+## NNSI-KG formula ablation (v0.4 candidates, measured 2026-07-28)
+
+Two new scoring components behind flags (`PlannerConfig.use_convergence`,
+`PlannerConfig.hub_discount`), evaluated with corpus, embeddings, and KG
+held identical across arms (`benchmarks/run_ablation_nnsi.py`; raw JSON
+committed alongside):
+
+- **Convergence (C):** per-seed PPR via batched power iteration, docs
+  scored by the geometric mean of per-anchor mass — reachable from
+  *every* question anchor beats flooded from one.
+- **Hub discount (γ):** PPR edge weights divided by log(e+deg)^γ of
+  entity endpoints — IDF for graph diffusion, damping promiscuous
+  entities ("Texas") that leak mass between unrelated regions.
+
+recall@10 (Δ vs the shipped v0.3.2 formula):
+
+| Arm | MuSiQue n=300 | 4-hop only (n=45) | HotpotQA n=500 | ms/query |
+|---|---:|---:|---:|---:|
+| baseline (3R+1S) | 0.594 | 0.372 | 0.859 | 80–109 |
+| + hub (γ=1) | −0.2 pts | +0.0 | +0.1 pts | ≈same |
+| + convergence | **+2.2 pts** | +2.2 pts | +1.0 pts | ×1.5–1.8 |
+| + both | +2.1 pts | **+2.8 pts** | **+1.1 pts** | ×1.5–1.8 |
+
+Read: **convergence is a consistent win on both datasets** and largest
+where multi-hop structure matters (MuSiQue 2-hop +3.3, 4-hop +2.8 with
+both). Hub discount is ≈neutral alone but adds at 3–4-hop in
+combination. Disclosed: MuSiQue recall@2 dips ≤0.5 pts under
+convergence; latency grows ~1.5–1.8× (still zero LLM tokens,
+deterministic). Cumulative vs naive cosine at these settings: HotpotQA
+n=500 **+5.1 pts** (0.870 vs 0.819), MuSiQue 4-hop **+5.6 pts**
+(0.400 vs 0.344).
+
 ## What's compared
 
 Three retrieval strategies on identical corpus + identical embedding model

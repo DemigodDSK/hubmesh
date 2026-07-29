@@ -38,13 +38,28 @@ class PlannerConfig:
     # positively correlate with the answer).
     integration: str = "sum"
 
+    # NNSI-KG components (v0.4 experiments, ablation-gated; both off by
+    # default until benchmarks justify them):
+    # hub_discount γ — divide PPR edge weights by log(e+deg)^γ of entity
+    # endpoints so promiscuous entities ("Texas") stop leaking diffusion
+    # mass between unrelated regions.
+    hub_discount: float = 0.0
+    # use_convergence — score each doc by the geometric mean of per-seed
+    # PPR mass (reachable from EVERY query anchor beats flooded from
+    # one); enters the composite through the coherence slot, weighted by
+    # weights.coherence.
+    use_convergence: bool = False
+
     def __post_init__(self):
         if self.weights is None:
             # Heavily relevance-biased default — cosine sim is highly
             # informative for QA. Structural acts as a tail-recovery boost
             # for multi-hop paragraphs whose cosine is low. Coherence off
-            # by default (off-topic for multi-hop).
-            self.weights = ScoringWeights(relevance=3.0, structural=1.0, coherence=0.0)
+            # by default (off-topic for multi-hop) — unless convergence
+            # is on, which rides the coherence slot and needs weight.
+            coh = 1.0 if self.use_convergence else 0.0
+            self.weights = ScoringWeights(relevance=3.0, structural=1.0,
+                                          coherence=coh)
 
 
 def _vec_of_factory(store: VectorStore) -> Callable[[str], np.ndarray]:
@@ -97,7 +112,9 @@ class Planner:
         # then becomes ~10-20× faster than rebuilding the sparse matrix on
         # every call (which nx.pagerank does).
         self._ppr_solver: PPRSolver | None = (
-            PPRSolver(kg.graph, weight_attr="weight") if kg is not None else None
+            PPRSolver(kg.graph, weight_attr="weight",
+                      hub_discount=self.config.hub_discount)
+            if kg is not None else None
         )
 
     def retrieve(
@@ -320,12 +337,29 @@ class Planner:
                 for i in range(len(valid_ids))
             }
 
-        # Multi-component scoring on docs only. Coherence is irrelevant in KG
-        # mode (the graph already encodes topical structure via entities).
+        # Multi-component scoring on docs. The coherence slot is neutral
+        # unless convergence is enabled, in which case it carries the
+        # per-seed reachability geomean: a multi-hop answer doc must be
+        # reachable from EVERY question anchor, not merely flooded with
+        # mass from one — pooled PPR can't tell those apart.
+        if (self.config.use_convergence and len(ppr_seeds) >= 2
+                and self._ppr_solver is not None):
+            per_seed = self._ppr_solver.solve_multi(
+                [[s] for s in ppr_seeds[:4]], alpha=self.config.ppr_alpha)
+            eps = 1e-12
+            doc_convergence = {
+                d: float(np.exp(np.mean(
+                    [np.log(eps + ps.get(f"doc:{d}", 0.0))
+                     for ps in per_seed])))
+                for d in doc_relevance
+            }
+        else:
+            doc_convergence = {d: 1.0 for d in doc_relevance}   # neutral
+
         composite = composite_score(
             relevance=doc_relevance,
             structural=doc_structural,
-            coherence={d: 1.0 for d in doc_relevance},   # neutral
+            coherence=doc_convergence,
             weights=self.config.weights,
             integration=self.config.integration,
         )

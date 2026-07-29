@@ -250,6 +250,58 @@ def test_pre_02_state_gets_empty_alias_index():
     assert old.query_entity_nodes(["USA"]) == ["ent:usa"]
 
 
+def test_solve_multi_matches_single_solves():
+    """Batched multi-seed PPR must agree with one-at-a-time solves."""
+    from hubmesh.ppr import PPRSolver
+    planner = _chain_setup()
+    solver = planner._ppr_solver
+    seeds = ["ent:elena", "ent:nimbus"]
+    batched = solver.solve_multi([[s] for s in seeds])
+    for s, dist in zip(seeds, batched):
+        single = solver.solve([s])
+        for node in single:
+            assert abs(single[node] - dist[node]) < 1e-6
+
+
+def test_hub_discount_shifts_mass_off_hub_routes():
+    """With γ>0, diffusion into a high-degree entity is damped relative
+    to low-degree neighbours (row normalisation cancels uniform
+    factors, so it's the RELATIVE within-row weights that shift)."""
+    from hubmesh.ppr import PPRSolver
+    planner = _chain_setup()
+    G = planner.kg.graph
+    plain = PPRSolver(G).solve(["ent:elena"])
+    damped = PPRSolver(G, hub_discount=1.0).solve(["ent:elena"])
+    # ent:nimbus is elena's highest-degree entity neighbour — the hub
+    # route. Its share of the diffusion must shrink under the discount.
+    assert damped["ent:nimbus"] < plain["ent:nimbus"]
+    # distributions still sum to ~1 (stochasticity preserved)
+    assert abs(sum(damped.values()) - 1.0) < 1e-6
+
+
+def test_convergence_component_prefers_multi_anchor_docs():
+    """With two seeds, a doc reachable from both must beat a doc
+    reachable from only one on the convergence component."""
+    from hubmesh.planner import PlannerConfig
+    from hubmesh.scoring import ScoringWeights
+    docs = [Document(id=k, text=v,
+                     vector=np.array(_VECS[k], dtype=np.float32))
+            for k, v in _TEXTS.items()]
+    store = InMemoryStore(docs, k=3)
+    kg = build_entity_kg_llm(docs, llm=_mock_llm)
+    cfg = PlannerConfig(use_convergence=True,
+                        weights=ScoringWeights(relevance=0.0, structural=0.0,
+                                               coherence=1.0))
+    planner = Planner(store=store, kg=kg, nlp=FakeNLP(), config=cfg)
+    # seeds: elena + voxel. 'founder' (elena+nimbus doc) and 'acq'
+    # (nimbus+voxel doc) sit between the anchors; 'distract' touches
+    # neither and must land at the bottom on pure convergence.
+    res = planner.retrieve(query="anything", query_vec=_QVEC, top_k=4,
+                           seed_entities=["Elena", "Voxel"])
+    order = [s.doc.id for s in res.sources]
+    assert order[-1] == "distract"
+
+
 def test_merge_dedups_overlapping_seeds():
     """Re-injecting an entity the query already mentions (the natural
     iterative-retrieval pattern) must not duplicate it in the teleport

@@ -56,9 +56,18 @@ class PPRSolver:
     """Pre-computes the sparse row-stochastic transition matrix for a fixed
     graph. Per-query cost = O(iters · nnz) with no per-call NetworkX
     overhead. ~10-20× speed-up vs nx.pagerank on KGs with thousands of
-    nodes."""
+    nodes.
 
-    def __init__(self, G: nx.Graph, weight_attr: str | None = "weight"):
+    `hub_discount` γ > 0 divides each edge weight by log(e+deg)^γ of its
+    entity endpoints — the IDF idea applied to graph diffusion. Promiscuous
+    entities ("Texas", "USA") appear in many documents and act as
+    shortcut bridges that leak PPR mass between unrelated regions; the
+    discount makes diffusion prefer specific entities over hubs. Only
+    "ent:"-prefixed nodes are discounted, so kNN-mode graphs are
+    unaffected."""
+
+    def __init__(self, G: nx.Graph, weight_attr: str | None = "weight",
+                 hub_discount: float = 0.0):
         self.nodes: list = list(G.nodes())
         self.idx: dict = {n: i for i, n in enumerate(self.nodes)}
         n = len(self.nodes)
@@ -67,6 +76,10 @@ class PPRSolver:
         rows, cols, data = [], [], []
         for u, v, d in G.edges(data=True):
             w = float(d.get(weight_attr, 1.0)) if weight_attr else 1.0
+            if hub_discount:
+                for endpoint in (u, v):
+                    if isinstance(endpoint, str) and endpoint.startswith("ent:"):
+                        w /= float(np.log(np.e + G.degree(endpoint))) ** hub_discount
             ui, vi = self.idx[u], self.idx[v]
             rows.append(ui); cols.append(vi); data.append(w)
             rows.append(vi); cols.append(ui); data.append(w)
@@ -108,3 +121,38 @@ class PPRSolver:
                 break
             p = p_new
         return {self.nodes[i]: float(p[i]) for i in range(n)}
+
+    def solve_multi(
+        self,
+        seed_groups: list[list],
+        alpha: float = 0.15,
+        max_iter: int = 50,
+        tol: float = 1e-6,
+    ) -> list[dict]:
+        """One PPR distribution per seed group, batched: the restart
+        vectors are stacked as columns and every power iteration is a
+        single sparse matmul, so k distributions cost roughly one solve.
+        This is the substrate for the convergence component — measuring
+        whether a document is reachable from EVERY query anchor rather
+        than merely flooded from one."""
+        n = self._n
+        if n == 0:
+            return [{} for _ in seed_groups]
+        k = len(seed_groups)
+        R = np.zeros((n, k), dtype=np.float64)
+        for j, seeds in enumerate(seed_groups):
+            valid = [s for s in seeds if s in self.idx]
+            if valid:
+                for s in valid:
+                    R[self.idx[s], j] = 1.0 / len(valid)
+            else:
+                R[:, j] = 1.0 / n
+        P = R.copy()
+        for _ in range(max_iter):
+            P_new = (1.0 - alpha) * (self._MT @ P) + alpha * R
+            if np.abs(P_new - P).sum() < tol * k:
+                P = P_new
+                break
+            P = P_new
+        return [{self.nodes[i]: float(P[i, j]) for i in range(n)}
+                for j in range(k)]
