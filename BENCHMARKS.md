@@ -39,7 +39,7 @@ after PPR matrix caching. Naive top-k is sub-millisecond.
 
 ---
 
-## NNSI-KG formula ablation (v0.4 candidates, measured 2026-07-28)
+## NNSI-KG formula ablation (measured 2026-07-28; convergence shipped as the v0.4.0 default, hub discount opt-in)
 
 Two new scoring components behind flags (`PlannerConfig.use_convergence`,
 `PlannerConfig.hub_discount`), evaluated with corpus, embeddings, and KG

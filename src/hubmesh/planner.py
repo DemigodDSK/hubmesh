@@ -38,17 +38,19 @@ class PlannerConfig:
     # positively correlate with the answer).
     integration: str = "sum"
 
-    # NNSI-KG components (v0.4 experiments, ablation-gated; both off by
-    # default until benchmarks justify them):
+    # NNSI-KG components (ablation results in BENCHMARKS.md):
     # hub_discount γ — divide PPR edge weights by log(e+deg)^γ of entity
     # endpoints so promiscuous entities ("Texas") stop leaking diffusion
-    # mass between unrelated regions.
+    # mass between unrelated regions. Opt-in: ≈neutral alone, adds at
+    # 3-4-hop combined with convergence (γ=1 recommended there).
     hub_discount: float = 0.0
     # use_convergence — score each doc by the geometric mean of per-seed
     # PPR mass (reachable from EVERY query anchor beats flooded from
     # one); enters the composite through the coherence slot, weighted by
-    # weights.coherence.
-    use_convergence: bool = False
+    # weights.coherence. Default ON since v0.4.0: +2.2 pts MuSiQue /
+    # +1.0 HotpotQA recall@10 for ~1.5-1.8× query cost on multi-seed
+    # queries (still zero LLM tokens, deterministic).
+    use_convergence: bool = True
 
     def __post_init__(self):
         if self.weights is None:

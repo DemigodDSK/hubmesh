@@ -219,24 +219,26 @@ DB so you don't have to migrate.
 ## Benchmarks
 
 **Headline:** on multi-hop QA, hubmesh's KG mode beats both naive cosine
-retrieval and a HippoRAG-style PPR-only ablation that uses the same KG.
-The win is largest at 4-hop — exactly the regime where graph-structural
-retrieval should help most.
+retrieval and a HippoRAG-style PPR-only ablation that uses the same KG,
+at every hop depth.
 
 | Benchmark | Setting | recall@10 vs naive |
 |---|---|---:|
 | **HotpotQA** dev, **N=7405** (full) | KG mode | **+4.92 pts** † |
-| HotpotQA dev, N=500 | KG mode | +4.00 pts |
-| MuSiQue dev, N=300, 2-hop | KG mode | +3.0 pts |
-| MuSiQue dev, N=300, 3-hop | KG mode | +2.6 pts |
-| MuSiQue dev, N=300, 4-hop | KG mode | **+3.4 pts** |
+| HotpotQA dev, N=500 | KG mode | **+5.0 pts** |
+| MuSiQue dev, N=300, 2-hop | KG mode | **+6.0 pts** |
+| MuSiQue dev, N=300, 3-hop | KG mode | +3.2 pts |
+| MuSiQue dev, N=300, 4-hop | KG mode | **+5.0 pts** |
 
-† measured on v0.1.1; all other rows re-measured on v0.2.0
-(alias-indexed seed resolution), which improved every recall@5/@10
-delta over v0.1.1. Disclosed: HotpotQA N=500 recall@2 dipped −0.4 pts.
+† measured on v0.1.1; all other rows measured with v0.4.0 defaults
+(alias-indexed seeds + NNSI-KG convergence; ablation JSONs committed
+in `benchmarks/`). Disclosed: small recall@2 dips (≤0.5 pts) under
+convergence; multi-seed queries cost ~1.5–1.8× (still zero LLM
+tokens, deterministic).
 
-vs PPR-only ablation on the same KG: **+29.8 pts** on HotpotQA (at N=500) —
-the multi-component scoring is doing the work, not just "having a graph."
+vs PPR-only ablation on the same KG: **+29.8 pts** on HotpotQA at N=500
+(measured on v0.2.0) — the multi-component scoring is doing the work,
+not just "having a graph."
 
 On the full N=7405 HotpotQA dev: hubmesh hits **74.2% supporting-fact
 recall@10** vs naive cosine's **69.3%**. The win is consistent at
@@ -257,13 +259,14 @@ python benchmarks/profile_query.py        # latency profile
 
 ## Status
 
-Pre-alpha (v0.3.0). Core algorithms implemented and validated; adapters for
+Pre-alpha (v0.4.0). Core algorithms implemented and validated; adapters for
 in-memory, Qdrant, and Chroma; entity-linked KG with both spaCy NER and
 LLM-based extraction (both linker-aware); alias-indexed entity resolution;
-agent-driven iterative multi-hop via `seed_entities` / `exclude_docs`;
-MCP operator server (`hubmesh-mcp`) with JSON/NPZ corpus persistence;
-document chunking; reasoning-path explanation; PPR-cache latency
-optimisation. Pinecone / pgvector / Weaviate adapters
+NNSI-KG scoring (multi-source convergence default-on, hub-discounted PPR
+opt-in); agent-driven iterative multi-hop via `seed_entities` /
+`exclude_docs`; MCP operator server (`hubmesh-mcp`, native SSE) with
+JSON/NPZ corpus persistence; document chunking; reasoning-path
+explanation; PPR-cache latency optimisation. Pinecone / pgvector / Weaviate adapters
 and additional multi-hop benchmarks are tracked as
 [good first issues](https://github.com/DemigodDSK/hubmesh/issues).
 

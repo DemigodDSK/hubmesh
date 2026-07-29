@@ -19,4 +19,4 @@ __all__ = [
     "Planner", "PlannerConfig", "CorpusManager",
     "chunk_by_sentences", "chunk_by_chars", "chunk_documents",
 ]
-__version__ = "0.3.2"
+__version__ = "0.4.0"

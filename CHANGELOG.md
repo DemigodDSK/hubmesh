@@ -4,6 +4,27 @@ All notable changes to **hubmesh** are documented here. The format is loosely
 based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the
 project follows [SemVer](https://semver.org/) starting from 0.1.0.
 
+## [0.4.0] — 2026-07-28
+
+### Changed
+- **NNSI-KG convergence is now the default** (`use_convergence=True`).
+  Documents are scored by the geometric mean of per-anchor PPR mass —
+  computed via batched power iteration (`PPRSolver.solve_multi`) — in
+  addition to cosine relevance and pooled structural PPR: a multi-hop
+  answer doc must be reachable from *every* question anchor, which
+  pooled-teleport diffusion cannot see. Measured (ablation JSONs in
+  `benchmarks/`): MuSiQue n=300 recall@10 **+2.2 pts**, HotpotQA n=500
+  **+1.0 pt** over the v0.3.2 formula; cumulative vs naive cosine:
+  HotpotQA **+5.0 pts** (0.869 vs 0.819), MuSiQue 2/3/4-hop
+  **+6.0/+3.2/+5.0**. Cost: ~1.5–1.8× per multi-seed query
+  (~120–190ms on 22–32K-node KGs) — still zero LLM tokens,
+  deterministic. Disclosed: MuSiQue recall@2 dips ≤0.5 pts.
+  Single-seed queries and kNN mode are unaffected (the component is
+  neutral there). Restore the old formula with
+  `PlannerConfig(use_convergence=False)`.
+- **`hub_discount` γ stays opt-in** — ≈neutral alone, adds at 3–4-hop
+  combined with convergence (γ=1 gave the best 4-hop number, +2.8 pts).
+
 ## [0.3.2] — 2026-07-28
 
 ### Added
