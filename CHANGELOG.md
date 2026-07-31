@@ -24,6 +24,11 @@ project follows [SemVer](https://semver.org/) starting from 0.1.0.
   `PlannerConfig(use_convergence=False)`.
 - **`hub_discount` γ stays opt-in** — ≈neutral alone, adds at 3–4-hop
   combined with convergence (γ=1 gave the best 4-hop number, +2.8 pts).
+- *Post-release measurement (2026-07-31):* full HotpotQA dev N=7405 on
+  v0.4.0 defaults — recall@10 **75.2% vs naive 69.3% (+5.90 pts**;
+  v0.1.1 published +4.92), +4.21 @5, −0.75 @2 (disclosed; use
+  `use_convergence=False` for top-2 workloads). Bit-identical KG build
+  to the v0.1.1 run; naive baseline reproduced exactly.
 
 ## [0.3.2] — 2026-07-28
 

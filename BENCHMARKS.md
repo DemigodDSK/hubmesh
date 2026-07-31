@@ -3,6 +3,15 @@
 Detailed empirical evaluation of `hubmesh` against simpler retrieval baselines
 on multi-hop QA. Reproduce with the scripts in `benchmarks/`.
 
+> **Full-dev v0.4.0 re-run (2026-07-31):** N=7405, identical corpus and
+> bit-identical KG build to the v0.1.1 run (66,581 paragraphs / 257,392
+> entities / 2,948,424 edges; naive baseline reproduced exactly at
+> 0.693). hubmesh recall@2/@5/@10 = **0.495 / 0.667 / 0.752** →
+> **+5.90 pts** @10 vs naive (v0.1.1: +4.92), +4.21 @5, **−0.75 @2** —
+> convergence trades top-rank precision for depth recall; use
+> `use_convergence=False` for top-2 workloads. ~3.0 s/query at this
+> scale (0 tokens, deterministic).
+>
 > **Version note:** the tables below were measured on **v0.1.1**.
 > **v0.2.0 re-run** (alias-indexed seed resolution; same harness, same
 > seed): HotpotQA N=500 recall@2/@5/@10 = 0.574/0.766/0.859 vs naive

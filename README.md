@@ -224,28 +224,30 @@ at every hop depth.
 
 | Benchmark | Setting | recall@10 vs naive |
 |---|---|---:|
-| **HotpotQA** dev, **N=7405** (full) | KG mode | **+4.92 pts** † |
+| **HotpotQA** dev, **N=7405** (full) | KG mode | **+5.90 pts** |
 | HotpotQA dev, N=500 | KG mode | **+5.0 pts** |
 | MuSiQue dev, N=300, 2-hop | KG mode | **+6.0 pts** |
 | MuSiQue dev, N=300, 3-hop | KG mode | +3.2 pts |
 | MuSiQue dev, N=300, 4-hop | KG mode | **+5.0 pts** |
 
-† measured on v0.1.1; all other rows measured with v0.4.0 defaults
-(alias-indexed seeds + NNSI-KG convergence; ablation JSONs committed
-in `benchmarks/`). Disclosed: small recall@2 dips (≤0.5 pts) under
-convergence; multi-seed queries cost ~1.5–1.8× (still zero LLM
-tokens, deterministic).
+All rows measured with v0.4.0 defaults (alias-indexed seeds + NNSI-KG
+convergence; ablation JSONs committed in `benchmarks/`). Disclosed:
+convergence trades top-rank precision for depth recall — recall@2 is
+**−0.75 pts vs naive on full dev** (dips ≤0.5 at smaller n); if you
+retrieve with `top_k=2`, set `use_convergence=False`. Multi-seed
+queries cost ~1.5–1.8× (still zero LLM tokens, deterministic).
 
 vs PPR-only ablation on the same KG: **+29.8 pts** on HotpotQA at N=500
 (measured on v0.2.0) — the multi-component scoring is doing the work,
 not just "having a graph."
 
-On the full N=7405 HotpotQA dev: hubmesh hits **74.2% supporting-fact
-recall@10** vs naive cosine's **69.3%**. The win is consistent at
-recall@2 (+1.1) and recall@5 (+4.4) too.
+On the full N=7405 HotpotQA dev: hubmesh hits **75.2% supporting-fact
+recall@10** vs naive cosine's **69.3%** (+4.21 pts at recall@5;
+recall@2 −0.75, disclosed above).
 
 Latency: **~22 ms** mean / 26 ms p95 per query on a 7K-node KG (after PPR
-matrix caching).
+matrix caching); ~3 s/query at the 66K-paragraph full-dev scale with
+v0.4 convergence on.
 
 See [BENCHMARKS.md](BENCHMARKS.md) for the full methodology, ablations,
 per-hop breakdown, and notes on what this proves and doesn't.
