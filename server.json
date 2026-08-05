@@ -1,0 +1,21 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.DemigodDSK/hubmesh",
+  "title": "hubmesh",
+  "description": "Deterministic multi-hop retrieval over your documents: entity-graph diffusion (Personalized PageRank + NNSI-KG scoring) with zero LLM calls in the server. Index corpora, retrieve with agent-steerable seeds, explore entity paths.",
+  "repository": {
+    "url": "https://github.com/DemigodDSK/hubmesh",
+    "source": "github"
+  },
+  "version": "0.4.1",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "hubmesh",
+      "version": "0.4.1",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}

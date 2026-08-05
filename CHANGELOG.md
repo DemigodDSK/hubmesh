@@ -4,6 +4,14 @@ All notable changes to **hubmesh** are documented here. The format is loosely
 based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the
 project follows [SemVer](https://semver.org/) starting from 0.1.0.
 
+## [0.4.1] — 2026-08-02
+
+### Docs
+- MCP Registry metadata: `server.json` (registry.modelcontextprotocol.io,
+  schema 2025-12-11) and the `mcp-name` ownership-verification marker in
+  the README. No code changes — this release exists so the PyPI-hosted
+  README carries the marker the registry checks.
+
 ## [0.4.0] — 2026-07-28
 
 ### Changed

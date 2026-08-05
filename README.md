@@ -5,6 +5,8 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/DemigodDSK/hubmesh/blob/main/LICENSE)
 [![Release](https://img.shields.io/github/v/release/DemigodDSK/hubmesh?include_prereleases)](https://github.com/DemigodDSK/hubmesh/releases)
 
+<!-- mcp-name: io.github.DemigodDSK/hubmesh -->
+
 **Centrality-aware GraphRAG retrieval planner. Drop-in layer over any vector DB.**
 
 `hubmesh` is a Python library that improves multi-hop RAG quality on top of an existing
