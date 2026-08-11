@@ -1,0 +1,26 @@
+{
+ "dataset": "hotpotqa",
+ "scope": "full",
+ "seed": 0,
+ "representation": "title+body",
+ "embed_model": "BAAI/bge-m3",
+ "embed_max_seq_len": 1024,
+ "use_convergence": true,
+ "n_questions": 7405,
+ "recall": {
+  "naive": {
+   "@2": 0.6656,
+   "@5": 0.7836,
+   "@10": 0.8346
+  },
+  "hubmesh": {
+   "@2": 0.5747,
+   "@5": 0.7695,
+   "@10": 0.8484
+  }
+ },
+ "total_query_time_s": {
+  "naive": 246.2,
+  "hubmesh": 22471.0
+ }
+}

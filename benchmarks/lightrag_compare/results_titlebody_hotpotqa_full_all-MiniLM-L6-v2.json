@@ -1,0 +1,26 @@
+{
+ "dataset": "hotpotqa",
+ "scope": "full",
+ "seed": 0,
+ "representation": "title+body",
+ "embed_model": "all-MiniLM-L6-v2",
+ "embed_max_seq_len": null,
+ "use_convergence": true,
+ "n_questions": 7405,
+ "recall": {
+  "naive": {
+   "@2": 0.5136,
+   "@5": 0.6334,
+   "@10": 0.7003
+  },
+  "hubmesh": {
+   "@2": 0.5161,
+   "@5": 0.6922,
+   "@10": 0.7727
+  }
+ },
+ "total_query_time_s": {
+  "naive": 74.0,
+  "hubmesh": 21070.6
+ }
+}

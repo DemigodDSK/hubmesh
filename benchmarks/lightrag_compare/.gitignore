@@ -1,0 +1,7 @@
+corpus_pilot/
+corpus_full/
+ingest_ledger_*.jsonl
+raw_lightrag_*.jsonl
+rag_storage_*/
+.env
+env.pilot

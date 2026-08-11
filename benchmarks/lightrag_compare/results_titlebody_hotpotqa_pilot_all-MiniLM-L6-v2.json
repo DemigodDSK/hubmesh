@@ -1,0 +1,23 @@
+{
+ "scope": "pilot",
+ "seed": 0,
+ "representation": "title+body",
+ "embed_model": "all-MiniLM-L6-v2",
+ "n_questions": 500,
+ "recall": {
+  "naive": {
+   "@2": 0.584,
+   "@5": 0.748,
+   "@10": 0.828
+  },
+  "hubmesh": {
+   "@2": 0.578,
+   "@5": 0.787,
+   "@10": 0.889
+  }
+ },
+ "total_query_time_s": {
+  "naive": 0.3,
+  "hubmesh": 106.9
+ }
+}
