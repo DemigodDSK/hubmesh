@@ -13,10 +13,26 @@ code. Layout under `<root>/<name>/`:
 A loaded corpus rebuilds its Planner (and the cached PPR transition
 matrix) on first use — that cost is paid once per process, not per
 query, same as constructing a Planner by hand.
+
+Persistence contract (scope verified by external review, 2026-09):
+corpora are stored as immutable generation directories behind an
+atomically-replaced CURRENT pointer. Writers are serialized by a
+per-corpus flock (POSIX; on platforms without fcntl, concurrent
+writers are unsupported). Readers resolve the pointer once and are
+protected for `retention_seconds` from the moment their generation is
+RETIRED — a reader that exceeds that grace period may fail loudly, and
+never sees mixed generations. Power-loss durability (fsync ordering)
+is not guaranteed.
 """
 from __future__ import annotations
 import json
+import os
+import re
+import shutil
 import threading
+import uuid
+import warnings
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable
@@ -28,8 +44,16 @@ from .adapters.inmemory import InMemoryStore
 from .kg import EntityKG
 from .planner import Planner, PlannerConfig
 
-FORMAT_VERSION = 1
+# v2 adds the "embedding" fingerprint block to meta.json. v1 corpora load
+# with a warning; versions above the current one are rejected.
+FORMAT_VERSION = 2
 DEFAULT_ROOT = Path.home() / ".hubmesh" / "corpora"
+
+# Corpus names are plain identifiers, never paths: must start with an
+# alphanumeric (which also excludes the "." prefix used by temp/backup
+# generations), then alphanumerics, "_", "-", ".". No separators, so a
+# name can never traverse outside the configured root.
+_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
 
 
 # ---------------------------------------------------------------------
@@ -78,12 +102,48 @@ class CorpusManager:
     root: Path = field(default_factory=lambda: DEFAULT_ROOT)
     embed: Callable[[str], np.ndarray] | None = None
     nlp: object | None = None
+    embed_identity: str | None = None   # e.g. "all-MiniLM-L6-v2"; recorded
+                                        # in meta.json and checked on load
+    retention_seconds: float = 900.0    # how long superseded generations
+                                        # survive for in-flight readers
+                                        # before GC (15 min default)
     _planners: dict = field(default_factory=dict, repr=False)
     _embed_lock: threading.Lock = field(default_factory=threading.Lock,
                                         repr=False)
 
     def __post_init__(self):
         self.root = Path(self.root).expanduser()
+
+    # ---- name / path safety ----------------------------------------
+
+    def _corpus_dir(self, name: str) -> Path:
+        """Resolve a corpus name to its directory, rejecting anything that
+        is not a plain identifier or that would escape the root (including
+        via symlinked roots)."""
+        if not isinstance(name, str) or not _NAME_RE.fullmatch(name):
+            raise ValueError(
+                f"invalid corpus name {name!r}: use 1-64 chars from "
+                "[A-Za-z0-9._-], starting with a letter or digit "
+                "(no path separators)")
+        cdir = self.root / name
+        root_res = self.root.resolve()
+        if cdir.resolve().parent != root_res:
+            raise ValueError(
+                f"corpus name {name!r} resolves outside the corpus root")
+        return cdir
+
+    def _current_embed_identity(self) -> str | None:
+        """Best-known identity of the active embedder WITHOUT loading it.
+        Explicit `embed_identity` wins; otherwise, when the default
+        lazy sentence-transformers path will be used, the model name is
+        known from the environment. A custom callable with no declared
+        identity yields None (compatibility then can't be verified)."""
+        if self.embed_identity is not None:
+            return self.embed_identity
+        if self.embed is None:
+            import os
+            return os.environ.get("HUBMESH_EMBED_MODEL", "all-MiniLM-L6-v2")
+        return None
 
     # ---- embedding -------------------------------------------------
 
@@ -114,6 +174,13 @@ class CorpusManager:
                         if set_offline:
                             os.environ.pop("HF_HUB_OFFLINE", None)
                     self.embed = lambda t: batched([t])[0]
+                    # Initializing the default model must not lose its
+                    # identity: once self.embed is set, the env-based
+                    # inference in _current_embed_identity() no longer
+                    # applies, so pin the resolved name now (an explicit
+                    # user-provided identity is never overwritten).
+                    if self.embed_identity is None:
+                        self.embed_identity = model
         return self.embed
 
     def warmup(self, corpora: bool = True) -> dict:
@@ -168,46 +235,230 @@ class CorpusManager:
                 self.nlp = spacy.load("en_core_web_sm")
             kg = build_entity_kg(docs, nlp=self.nlp)
 
-        cdir = self.root / name
-        cdir.mkdir(parents=True, exist_ok=True)
-        with open(cdir / "docs.jsonl", "w") as f:
-            for d in docs:
-                f.write(json.dumps({"id": d.id, "text": d.text,
-                                    "metadata": d.metadata or {}}) + "\n")
-        np.savez_compressed(
-            cdir / "vectors.npz",
-            doc_ids=np.array([d.id for d in docs]),
-            vectors=np.stack([d.vector for d in docs]).astype(np.float32),
-        )
-        (cdir / "kg.json").write_text(json.dumps(kg_to_dict(kg)))
+        cdir = self._corpus_dir(name)
+        vectors = np.stack([d.vector for d in docs]).astype(np.float32)
         meta = {
             "format_version": FORMAT_VERSION,
             "n_docs": len(docs),
             "kg_nodes": kg.graph.number_of_nodes(),
             "kg_edges": kg.graph.number_of_edges(),
+            "embedding": {
+                "identity": self._current_embed_identity(),
+                "dim": int(vectors.shape[1]),
+            },
         }
-        (cdir / "meta.json").write_text(json.dumps(meta, indent=2))
+
+        # Generation-pointer publish. Layout: <root>/<name>/ holds
+        # immutable generation dirs (gen-<hex8>/) plus a CURRENT pointer
+        # file naming the live one. Publishing = write a complete new
+        # generation, validate it, then atomically replace CURRENT
+        # (os.replace of a file IS a transaction; two directory renames
+        # are not — a crash between them can lose the live corpus, which
+        # is exactly what this replaces). Readers resolve CURRENT once
+        # and read only inside that generation, so a concurrent rebuild
+        # can never hand them mixed text/vectors. The previous generation
+        # is retained so in-flight readers stay valid across one rebuild;
+        # older generations and stale staging dirs are pruned.
+        cdir.mkdir(parents=True, exist_ok=True)
+        gen_name = f"gen-{uuid.uuid4().hex[:8]}"
+
+        # Stage -> publish -> prune runs under a per-corpus writer lock:
+        # atomic pointer replacement alone does not serialize the
+        # operations around it (an unlocked writer could prune with a
+        # stale view and delete the generation another writer just
+        # published). Readers never take the lock.
+        with self._writer_lock(cdir):
+            staging = cdir / (gen_name + ".staging")
+            staging.mkdir(exist_ok=False)
+            try:
+                with open(staging / "docs.jsonl", "w") as f:
+                    for d in docs:
+                        f.write(json.dumps({"id": d.id, "text": d.text,
+                                            "metadata": d.metadata or {}})
+                                + "\n")
+                np.savez_compressed(
+                    staging / "vectors.npz",
+                    doc_ids=np.array([d.id for d in docs]),
+                    vectors=vectors,
+                )
+                (staging / "kg.json").write_text(json.dumps(kg_to_dict(kg)))
+                (staging / "meta.json").write_text(json.dumps(meta, indent=2))
+                # validate the generation before it can become CURRENT
+                check = np.load(staging / "vectors.npz")
+                if len(check["doc_ids"]) != meta["n_docs"]:
+                    raise IOError("corpus generation failed self-validation")
+                json.loads((staging / "meta.json").read_text())
+                staging.rename(cdir / gen_name)
+            except BaseException:
+                shutil.rmtree(staging, ignore_errors=True)
+                raise
+
+            prev = self._read_pointer(cdir)
+            ptr_tmp = cdir / f"CURRENT.tmp-{gen_name}"   # writer-unique
+            ptr_tmp.write_text(gen_name)
+            os.replace(ptr_tmp, cdir / "CURRENT")        # atomic publish
+            # Retirement bookkeeping: the reader-protection window starts
+            # when a generation STOPS BEING CURRENT, not when it was
+            # created — an old live corpus's first rebuild must still give
+            # its in-flight readers the full grace period.
+            if prev and prev != gen_name and (cdir / prev).exists():
+                self._mark_retired(cdir / prev)
+            self._prune_locked(cdir, current=gen_name)
+
         self._planners.pop(name, None)   # invalidate any cached planner
         return meta
+
+    # ---- writer coordination / retention ---------------------------
+
+    @contextmanager
+    def _writer_lock(self, cdir: Path):
+        """Advisory per-corpus exclusive lock (flock on <corpus>/.lock).
+        Serializes stage/publish/prune across writers — threads and
+        processes on the same host. Readers are lock-free by design. On
+        platforms without fcntl (Windows), degrades to no locking;
+        concurrent writers there are unsupported."""
+        lock_path = cdir / ".lock"
+        try:
+            import fcntl
+        except ImportError:              # non-POSIX: best effort
+            yield
+            return
+        fd = os.open(lock_path, os.O_CREAT | os.O_RDWR)
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX)
+            yield
+        finally:
+            fcntl.flock(fd, fcntl.LOCK_UN)
+            os.close(fd)
+
+    @staticmethod
+    def _mark_retired(gen_dir: Path) -> None:
+        """Record the moment a generation stopped being current. The
+        marker lives inside the generation dir so it is deleted with it
+        and never orphans bookkeeping."""
+        import time
+        try:
+            (gen_dir / ".retired").write_text(repr(time.time()))
+        except OSError:
+            pass   # conservative path in _prune_locked covers a miss
+
+    def _prune_locked(self, cdir: Path, current: str) -> None:
+        """Garbage-collect under the writer lock.
+
+        Deletion policy (round-4 review): the grace period runs from
+        RETIREMENT, not creation — a generation that was live for days
+        still gets the full `retention_seconds` after being replaced.
+        A non-current generation with no readable retirement marker
+        (crash between publish and bookkeeping, or a pre-fix layout) is
+        handled conservatively: the marker is written NOW and the
+        generation is skipped this pass, so its window starts fresh
+        rather than being treated as already expired.
+        Orphaned staging dirs and pointer temp files are safe to remove
+        while the lock is held (live writers hold it during staging).
+        Legacy flat-layout files are NEVER deleted: a legacy reader's
+        lifetime is unknowable, and superseded flat files are inert
+        once CURRENT exists."""
+        import time
+        now = time.time()
+        for child in cdir.iterdir():
+            name = child.name
+            try:
+                if name.endswith(".staging") or name.startswith("CURRENT.tmp-"):
+                    if child.is_dir():
+                        shutil.rmtree(child, ignore_errors=True)
+                    else:
+                        child.unlink(missing_ok=True)
+                elif name.startswith("gen-") and name != current:
+                    retired_at = None
+                    try:
+                        retired_at = float(
+                            (child / ".retired").read_text().strip())
+                    except (OSError, ValueError):
+                        pass
+                    if retired_at is None:
+                        self._mark_retired(child)   # clock starts now
+                        continue
+                    if now - retired_at > self.retention_seconds:
+                        shutil.rmtree(child, ignore_errors=True)
+            except OSError:
+                continue   # GC is best-effort; never fail a publish over it
+
+    @staticmethod
+    def _read_pointer(cdir: Path) -> str | None:
+        """Name of the live generation, or None (missing/legacy layout)."""
+        cur = cdir / "CURRENT"
+        if not cur.exists():
+            return None
+        gen = cur.read_text().strip()
+        if not re.fullmatch(r"gen-[0-9a-f]{8}", gen):
+            raise ValueError(
+                f"corrupt CURRENT pointer in {cdir}: {gen!r}")
+        return gen
 
     # ---- load / query ----------------------------------------------
 
     def load(self, name: str) -> tuple[InMemoryStore, EntityKG]:
-        cdir = self.root / name
-        if not (cdir / "meta.json").exists():
+        cdir = self._corpus_dir(name)
+        # Resolve the live generation ONCE; every subsequent read stays
+        # inside it, so a rebuild that publishes mid-load cannot hand this
+        # reader text from one generation and vectors from another.
+        gen = self._read_pointer(cdir) if cdir.exists() else None
+        gdir = (cdir / gen) if gen else cdir     # None -> legacy flat layout
+        if gen and not gdir.exists():
+            raise FileNotFoundError(
+                f"corpus {name!r}: CURRENT names generation {gen} but its "
+                "directory is missing — pruned during an unlocked write or "
+                "externally deleted; rebuild the corpus")
+        if not (gdir / "meta.json").exists():
             raise FileNotFoundError(
                 f"no corpus named {name!r} under {self.root}")
+        meta = json.loads((gdir / "meta.json").read_text())
+        stored_version = meta.get("format_version", 0)
+        if stored_version > FORMAT_VERSION:
+            raise ValueError(
+                f"corpus {name!r} has format_version {stored_version}, "
+                f"newer than this hubmesh ({FORMAT_VERSION}) — upgrade "
+                "hubmesh to read it")
+        emb = meta.get("embedding")
+        if emb is None:
+            warnings.warn(
+                f"corpus {name!r} predates embedding fingerprints "
+                "(format v1); compatibility with the current embedder "
+                "cannot be verified — rebuild to record one",
+                stacklevel=2)
+        else:
+            current = self._current_embed_identity()
+            stored = emb.get("identity")
+            if stored and current and stored != current:
+                raise ValueError(
+                    f"corpus {name!r} was embedded with {stored!r} but the "
+                    f"current embedder is {current!r}. Same-dimension "
+                    "mismatches corrupt retrieval silently. Fix: set "
+                    f"HUBMESH_EMBED_MODEL={stored} (or pass embed_identity/"
+                    "a matching embed callable), or rebuild the corpus")
+            if stored and current is None:
+                warnings.warn(
+                    f"corpus {name!r} was embedded with {stored!r}; the "
+                    "current custom embedder declares no embed_identity, so "
+                    "compatibility cannot be verified", stacklevel=2)
         # np.load's default forbids embedded objects — plain arrays only.
-        npz = np.load(cdir / "vectors.npz")
+        npz = np.load(gdir / "vectors.npz")
+        if emb is not None and emb.get("dim") is not None:
+            actual_dim = int(npz["vectors"].shape[1])
+            if actual_dim != int(emb["dim"]):
+                raise ValueError(
+                    f"corpus {name!r}: meta.json declares embedding dim "
+                    f"{emb['dim']} but vectors.npz has dim {actual_dim} — "
+                    "the corpus files are inconsistent; rebuild it")
         vecs = {i: v for i, v in zip(npz["doc_ids"], npz["vectors"])}
         docs = []
-        with open(cdir / "docs.jsonl") as f:
+        with open(gdir / "docs.jsonl") as f:
             for line in f:
                 rec = json.loads(line)
                 docs.append(Document(id=rec["id"], text=rec["text"],
                                      vector=vecs[rec["id"]],
                                      metadata=rec.get("metadata", {})))
-        kg = kg_from_dict(json.loads((cdir / "kg.json").read_text()))
+        kg = kg_from_dict(json.loads((gdir / "kg.json").read_text()))
         return InMemoryStore(docs), kg
 
     def planner(self, name: str, config: PlannerConfig | None = None) -> Planner:
@@ -226,7 +477,13 @@ class CorpusManager:
             return {}
         out = {}
         for cdir in sorted(self.root.iterdir()):
-            meta = cdir / "meta.json"
+            if cdir.name.startswith("."):
+                continue
+            try:
+                gen = self._read_pointer(cdir)
+            except ValueError:
+                continue   # corrupt pointer — not listable
+            meta = (cdir / gen / "meta.json") if gen else cdir / "meta.json"
             if meta.exists():
                 out[cdir.name] = json.loads(meta.read_text())
         return out

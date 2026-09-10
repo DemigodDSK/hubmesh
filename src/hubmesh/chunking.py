@@ -38,6 +38,12 @@ def chunk_by_chars(
 
     Defaults: 800 chars (~200 tokens) with 100-char overlap.
     """
+    if chunk_chars < 1:
+        raise ValueError(f"chunk_chars must be >= 1, got {chunk_chars}")
+    if overlap_chars < 0:
+        raise ValueError(
+            f"overlap_chars must be >= 0, got {overlap_chars} "
+            "(negative overlap would silently skip characters)")
     if not text:
         return []
     metadata = dict(metadata or {})
@@ -96,6 +102,11 @@ def chunk_by_sentences(
     tricky text (abbreviations, quotations, etc.). Without it, a regex
     fallback is used.
     """
+    if target_tokens < 1:
+        raise ValueError(f"target_tokens must be >= 1, got {target_tokens}")
+    if overlap_sentences < 0:
+        raise ValueError(
+            f"overlap_sentences must be >= 0, got {overlap_sentences}")
     if not text:
         return []
     metadata = dict(metadata or {})
@@ -142,7 +153,12 @@ def chunk_documents(
     **kwargs,
 ) -> list[Document]:
     """Bulk-chunk a corpus. Yields Documents ready for embedding."""
-    fn = chunk_by_sentences if strategy == "sentences" else chunk_by_chars
+    strategies = {"sentences": chunk_by_sentences, "chars": chunk_by_chars}
+    if strategy not in strategies:
+        raise ValueError(
+            f"unknown chunking strategy {strategy!r}; "
+            f"choose one of {sorted(strategies)}")
+    fn = strategies[strategy]
     out: list[Document] = []
     for src in sources:
         if isinstance(src, Document):

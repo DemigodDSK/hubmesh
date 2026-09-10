@@ -48,6 +48,17 @@ class InMemoryStore:
         docs: list[Document] = []
         for i, item in enumerate(documents):
             if isinstance(item, Document):
+                # Chunkers emit Document objects with vector=None — embed
+                # them here so chunk -> embed -> retrieve works directly.
+                if item.vector is None:
+                    if embed is None:
+                        raise ValueError(
+                            f"Document {item.id!r} has no vector; pass "
+                            "embed= to from_documents (chunker output is "
+                            "unembedded by design)")
+                    item = Document(id=item.id, text=item.text,
+                                    vector=embed(item.text),
+                                    metadata=item.metadata)
                 docs.append(item)
                 continue
             if isinstance(item, str):

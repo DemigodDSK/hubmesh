@@ -27,13 +27,18 @@ def pack(
     budget_tokens: int,
     redundancy_lambda: float = 0.3,
     vec_of: callable | None = None,
+    max_docs: int | None = None,
 ) -> tuple[str, list[ScoredDocument]]:
-    """Greedy MMR packing. Returns (joined_context, picked).
+    """Greedy score-first packing with a near-duplicate filter.
+    Returns (joined_context, picked); the context is built from exactly
+    the returned `picked` list, so provenance and text always agree.
 
     redundancy_lambda interpolates between pure score (0.0) and pure
-    diversity (1.0). vec_of is optional — if supplied we use cosine similarity
-    between picked docs to suppress redundancy; otherwise we just dedupe by
-    text prefix.
+    diversity (1.0). vec_of is optional — if supplied we use cosine
+    similarity between picked docs to suppress near-duplicates.
+    `max_docs` caps how many documents enter the context — pass the
+    caller's top_k so the context never contains more documents than the
+    sources it reports.
     """
     if not scored:
         return "", []
@@ -44,6 +49,8 @@ def pack(
     picked_vecs: list[np.ndarray] = []
 
     for cand in sorted_scored:
+        if max_docs is not None and len(picked) >= max_docs:
+            break
         toks = estimate_tokens(cand.doc.text)
         if used_tokens + toks > budget_tokens:
             continue

@@ -237,12 +237,15 @@ class Planner:
                 rank=rank,
             ))
 
-        # 6. pack into budget
+        # 6. pack into budget. max_docs=top_k keeps the packed context in
+        # exact agreement with the returned sources list — the packer
+        # considers 5×k candidates but may include only k documents.
         context, picked = pack(
             scored[:top_k * 5],            # consider top 5×k for packing
             budget_tokens=budget_tokens,
             redundancy_lambda=self.config.redundancy_lambda,
             vec_of=self._vec_of,
+            max_docs=top_k,
         )
 
         return RetrievalResult(
@@ -386,6 +389,7 @@ class Planner:
             budget_tokens=budget_tokens,
             redundancy_lambda=self.config.redundancy_lambda,
             vec_of=self._vec_of,
+            max_docs=top_k,
         )
 
         # Build reasoning paths from query entities → retrieved docs.
