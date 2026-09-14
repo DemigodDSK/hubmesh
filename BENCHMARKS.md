@@ -283,7 +283,7 @@ extraction isn't possible.
 The multi-component scoring pattern (multi-component score with each
 component capturing a functional role, integrated multiplicatively) is
 adapted from the **NNSI framework** introduced in
-[Naidu, "A Framework for Improving Network Topology Based on
+[Naidu et al., "A Framework for Improving Network Topology Based on
 Graph Theory in Software-Defined Networking", CCIS vol. 2934, Springer,
 2026, pp. 3–18](https://doi.org/10.1007/978-3-032-22190-2_1).
 The application here — to retrieval planning over an entity-linked KG —

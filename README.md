@@ -33,7 +33,7 @@ that line with two contributions:
    just truncating top-k.
 
 The multi-component scoring pattern is adapted from the NNSI framework
-([Naidu, CCIS 2934, Springer, 2026](https://doi.org/10.1007/978-3-032-22190-2_1))
+([Naidu et al., CCIS 2934, Springer, 2026](https://doi.org/10.1007/978-3-032-22190-2_1))
 for SDN topology optimization, repurposed here for retrieval planning.
 
 ## Quickstart
@@ -279,7 +279,7 @@ and additional multi-hop benchmarks are tracked as
 The multi-component scoring pattern is adapted from the **Network Node Significance
 Index (NNSI)** framework introduced in:
 
-> D. S. K. Naidu, "A Framework for Improving Network Topology
+> D. S. K. Naidu et al., "A Framework for Improving Network Topology
 > Based on Graph Theory in Software-Defined Networking," in *Internet Computing,
 > Internet of Things, Artificial Intelligence, and Applications*, Communications
 > in Computer and Information Science, vol. 2934, H. R. Arabnia, L. Deligiannidis,
@@ -289,7 +289,7 @@ Index (NNSI)** framework introduced in:
 
 ```bibtex
 @inproceedings{naidu2026nnsi,
-  author    = {Naidu, Datta Sai Krishna},
+  author    = {Naidu, Datta Sai Krishna and others},
   title     = {A Framework for Improving Network Topology Based on Graph Theory
                in Software-Defined Networking},
   booktitle = {Internet Computing, Internet of Things, Artificial Intelligence,
