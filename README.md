@@ -33,8 +33,8 @@ that line with two contributions:
    just truncating top-k.
 
 The multi-component scoring pattern is adapted from the NNSI framework
-(Naidu Dsk, ICOMP'25 — to appear) for SDN topology
-optimization, repurposed here for retrieval planning.
+([Naidu, CCIS 2934, Springer, 2026](https://doi.org/10.1007/978-3-032-22190-2_1))
+for SDN topology optimization, repurposed here for retrieval planning.
 
 ## Quickstart
 
@@ -277,12 +277,39 @@ and additional multi-hop benchmarks are tracked as
 ## Acknowledgements
 
 The multi-component scoring pattern is adapted from the **Network Node Significance
-Index (NNSI)** framework introduced in
-Naidu Dsk, "A Framework for Improving Network Topology Based on Graph
-Theory in Software-Defined Networking", 26th International Conference on
-Internet Computing & IoT (ICOMP'25), Las Vegas, July 2025 — proceedings
-to appear. Repurposed here from SDN topology optimization to retrieval
-planning.
+Index (NNSI)** framework introduced in:
+
+> D. S. K. Naidu, "A Framework for Improving Network Topology
+> Based on Graph Theory in Software-Defined Networking," in *Internet Computing,
+> Internet of Things, Artificial Intelligence, and Applications*, Communications
+> in Computer and Information Science, vol. 2934, H. R. Arabnia, L. Deligiannidis,
+> K. Ferens, F. Ghareh Mohammadi, F. Shenavarmasouleh, and S. Amirian, Eds.
+> Cham: Springer, 2026, pp. 3–18.
+> doi: [10.1007/978-3-032-22190-2_1](https://doi.org/10.1007/978-3-032-22190-2_1)
+
+```bibtex
+@inproceedings{naidu2026nnsi,
+  author    = {Naidu, Datta Sai Krishna},
+  title     = {A Framework for Improving Network Topology Based on Graph Theory
+               in Software-Defined Networking},
+  booktitle = {Internet Computing, Internet of Things, Artificial Intelligence,
+               and Applications},
+  series    = {Communications in Computer and Information Science},
+  volume    = {2934},
+  editor    = {Arabnia, Hamid R. and Deligiannidis, Leonidas and Ferens, Ken and
+               Ghareh Mohammadi, Farid and Shenavarmasouleh, Farzan and
+               Amirian, Soheyla},
+  pages     = {3--18},
+  publisher = {Springer},
+  address   = {Cham},
+  year      = {2026},
+  doi       = {10.1007/978-3-032-22190-2_1},
+  isbn      = {978-3-032-22189-6}
+}
+```
+
+NNSI is repurposed here from SDN topology optimization to retrieval planning; the
+application to retrieval over an entity-linked KG is new to this work.
 
 ## License
 
