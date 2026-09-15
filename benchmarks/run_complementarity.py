@@ -197,6 +197,8 @@ def stage_retrieve(args, examples, ids, texts, gold_of):
     model = SentenceTransformer(args.embed_model, device=args.embed_device)
     if args.embed_max_seq_len:
         model.max_seq_length = args.embed_max_seq_len
+    if args.embed_dtype == "fp16":
+        model.half()            # Amendment 1: fp16 on Metal (8 GB machine)
     t0 = time.perf_counter()
     para_vecs = model.encode([texts[i] for i in ids], batch_size=args.embed_batch_size,
                              show_progress_bar=True, normalize_embeddings=True,
@@ -255,6 +257,7 @@ def stage_retrieve(args, examples, ids, texts, gold_of):
         })
     stage = {
         "embed_model": args.embed_model, "embed_device": args.embed_device or "auto",
+        "embed_dtype": args.embed_dtype,
         "embed_batch_size": args.embed_batch_size,
         "embed_max_seq_len": args.embed_max_seq_len,
         "pool": len(ids), "embed_pool_s": round(embed_pool_s, 1),
@@ -277,6 +280,8 @@ def stage_retrieve(args, examples, ids, texts, gold_of):
 def stage_rerank(args, stage, texts, questions):
     from sentence_transformers import CrossEncoder
     ce = CrossEncoder(args.rerank_model, max_length=512, device=args.rerank_device)
+    if args.rerank_dtype == "fp16":
+        ce.model.half()         # Amendment 1: fp16 on Metal (8 GB machine)
     for rec in stage["records"]:
         q = questions[rec["qid"]]
         # score the union of the reranked arms' candidates once (a pair's
@@ -305,6 +310,7 @@ def stage_rerank(args, stage, texts, questions):
                 rec["final"][a] = cand[:10]
     stage["rerank_model"] = args.rerank_model
     stage["rerank_device"] = args.rerank_device or "auto"
+    stage["rerank_dtype"] = args.rerank_dtype
     stage["rerank_batch_size"] = args.rerank_batch_size
     del ce
     gc.collect()
@@ -356,9 +362,11 @@ def analyse(args, stage, qtype_of, hop_of):
             protocol_sha256=protocol_sha256(), dataset=args.dataset, n=args.n,
             seed=args.seed, representation="title+body",
             embed_model=stage["embed_model"], embed_device=stage["embed_device"],
+            embed_dtype=stage.get("embed_dtype", "fp32"),
             embed_batch_size=stage["embed_batch_size"],
             embed_max_seq_len=stage.get("embed_max_seq_len"),
             rerank_model=stage.get("rerank_model"), rerank_device=stage.get("rerank_device"),
+            rerank_dtype=stage.get("rerank_dtype", "fp32"),
             rerank_batch_size=stage.get("rerank_batch_size"),
             hardware=f"{platform.machine()} {platform.platform()}",
             rrf_k=RRF_K, fuse_topn=TOPN_FUSE, base_n=BASE_N, hub_n=HUB_N,
@@ -425,10 +433,13 @@ def main():
     ap.add_argument("--embed-model", default="BAAI/bge-m3")
     ap.add_argument("--embed-device", default=None)
     ap.add_argument("--embed-batch-size", type=int, default=8)
-    ap.add_argument("--embed-max-seq-len", type=int, default=1024)
+    ap.add_argument("--embed-max-seq-len", type=int, default=512)
+    ap.add_argument("--embed-dtype", choices=["fp32", "fp16"], default="fp32",
+                    help="fp16 halves the model's memory on Metal (Amendment 1)")
     ap.add_argument("--rerank-model", default="BAAI/bge-reranker-v2-m3")
     ap.add_argument("--rerank-device", default=None)
-    ap.add_argument("--rerank-batch-size", type=int, default=16)
+    ap.add_argument("--rerank-dtype", choices=["fp32", "fp16"], default="fp32")
+    ap.add_argument("--rerank-batch-size", type=int, default=8)
     ap.add_argument("--boot", type=int, default=10_000)
     ap.add_argument("--stage", choices=["all", "retrieve", "rerank"], default="all")
     ap.add_argument("--stage-file", default=None,

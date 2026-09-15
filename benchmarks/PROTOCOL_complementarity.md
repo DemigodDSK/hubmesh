@@ -134,6 +134,30 @@ whole-tree dirty flag, `src_sha256`, `benchmarks_sha256`, harness hash,
 this file's SHA-256, embedding/reranker models, device and batch sizes.
 Results are examined once, after all arms complete.
 
+## Amendment 1 — 2026-09-15, recorded before any result was examined
+
+Reason: on the 8 GB development machine, fp32 bge-m3 at batch 8 / max
+sequence 1024 on Metal drove macOS swap growth that filled the disk and
+aborted stage R at batch 17 of 782 (no stage output was written, so
+nothing was examined); the automatic CPU fallback would need roughly
+twenty hours across both stages.
+
+Change, applied to bge-m3 and the reranker and recorded in every manifest
+(`embed_dtype`, `rerank_dtype`, `embed_batch_size`, `embed_max_seq_len`,
+`rerank_batch_size`, device): embeddings and reranker scores are computed
+in **fp16 on Metal**, with **max sequence length 512** for both models,
+batch 4 for the embedder and 8 for the reranker, and a Metal allocation
+ceiling instead of an unbounded one. If a Metal run fails, that stage
+falls back to **fp32 on CPU** with the same sequence limit. MiniLM (the
+secondary embedder) stays fp32, batch 32, sequence 256.
+
+Expected effect on results: 512 tokens covers all but a handful of
+paragraphs in these datasets (HotpotQA p99 ≈ 350 tokens); fp16 perturbs
+embeddings and scores at the ~1e-3 level. Latency figures are for fp16 on
+Metal (or fp32 on CPU where a manifest says so) and are labelled as such.
+Nothing about data, arms, candidate budgets, metrics, contrasts, the
+decision rule or the regression guard changes.
+
 ## Decision table (engineering and product kept separate)
 
 | result | engineering next | product next |
