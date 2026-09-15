@@ -120,7 +120,10 @@ def composite_score(
     R = _minmax_dict(relevance)
     S = _minmax_dict(structural)
     C = _minmax_dict(coherence)
-    nodes = set(R) | set(S) | set(C)
+    # Sorted iteration: set order is hash-seed dependent, and equal scores
+    # downstream keep dict insertion order — this is what makes tie order
+    # identical across processes.
+    nodes = sorted(set(R) | set(S) | set(C))
     out: dict[str, float] = {}
     w_total = weights.relevance + weights.structural + weights.coherence
     if integration == "geom":

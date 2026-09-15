@@ -16,28 +16,38 @@ def build_induced_subgraph(
     of the proximity graph. Capped at `cap` nodes to keep query-time cost
     bounded — the most important real-time invariant of hubmesh.
     """
+    # Determinism at the cap boundary (external review, 2026-09-14): which
+    # nodes make it in when the cap truncates a hop depends on the visit
+    # order. Sets iterate in hash-seed order, so two processes could
+    # expand different candidate sets before any ranking happened. Visit
+    # order is therefore fixed: frontier nodes by id, each node's
+    # neighbours in the store's returned order, membership tracked in an
+    # insertion-ordered dict.
     nodes: set[str] = set(seed_ids)
-    frontier: set[str] = set(seed_ids)
+    frontier: list[str] = list(dict.fromkeys(seed_ids))
     for _ in range(hops):
         if len(nodes) >= cap:
             break
-        new_frontier: set[str] = set()
-        for nid in frontier:
+        new_frontier: dict[str, None] = {}
+        stop = False
+        for nid in sorted(frontier):
             for nb in store.neighbors(nid, k=16):
-                if nb not in nodes:
-                    new_frontier.add(nb)
+                if nb not in nodes and nb not in new_frontier:
+                    new_frontier[nb] = None
                     if len(nodes) + len(new_frontier) >= cap:
+                        stop = True
                         break
-            if len(nodes) + len(new_frontier) >= cap:
+            if stop:
                 break
         nodes.update(new_frontier)
-        frontier = new_frontier
+        frontier = list(new_frontier)
         if not frontier:
             break
 
     G = nx.Graph()
-    G.add_nodes_from(nodes)
-    for nid in nodes:
+    ordered = sorted(nodes)           # stable node insertion order
+    G.add_nodes_from(ordered)
+    for nid in ordered:
         for nb in store.neighbors(nid, k=16):
             if nb in nodes:
                 G.add_edge(nid, nb)

@@ -33,6 +33,7 @@ corpus are free.
 from __future__ import annotations
 import hashlib
 import json
+import warnings
 from collections import defaultdict
 from pathlib import Path
 from typing import Callable
@@ -69,8 +70,14 @@ def _hash(text: str) -> str:
     return hashlib.blake2b(text.encode("utf-8"), digest_size=12).hexdigest()
 
 
-def _parse_triples(raw: str) -> list[tuple[str, str, str]]:
-    """Lenient JSON parsing — handle stray prose around the JSON."""
+def _parse_triples(raw: str) -> list[tuple[str, str, str]] | None:
+    """Lenient JSON parsing — handle stray prose around the JSON.
+
+    Returns a (possibly empty) list when the reply parses to a triple
+    list, and **None when nothing parseable was found**: a valid empty
+    extraction and a malformed reply are different outcomes, and only
+    the former may be cached (external review, 2026-09-14: `NOT JSON`
+    was cached as "no relations" and never retried)."""
     raw = raw.strip()
     # Try direct parse first
     candidates = [raw]
@@ -89,9 +96,12 @@ def _parse_triples(raw: str) -> list[tuple[str, str, str]]:
             obj = json.loads(cand)
         except json.JSONDecodeError:
             continue
-        # Accept either {"triples": [[s,p,o],...]} or just [[s,p,o],...]
+        # Accept either {"triples": [[s,p,o],...]} or just [[s,p,o],...].
+        # A JSON object WITHOUT the key is not an extraction result.
         if isinstance(obj, dict):
-            obj = obj.get("triples", [])
+            if "triples" not in obj:
+                continue
+            obj = obj["triples"]
         if isinstance(obj, list):
             out = []
             for t in obj:
@@ -99,7 +109,7 @@ def _parse_triples(raw: str) -> list[tuple[str, str, str]]:
                         and all(isinstance(x, str) and x.strip() for x in t)):
                     out.append((t[0].strip(), t[1].strip(), t[2].strip()))
             return out
-    return []
+    return None
 
 
 def build_entity_kg_llm(
@@ -110,6 +120,7 @@ def build_entity_kg_llm(
     max_workers: int = 1,
     progress: bool = False,
     linker=None,
+    llm_identity: str | None = None,
 ) -> EntityKG:
     """Build the KG by extracting (subject, predicate, object) triples
     from each document via an LLM.
@@ -128,46 +139,128 @@ def build_entity_kg_llm(
     separate entities even when they co-refer.
     """
     template = prompt_template or DEFAULT_TRIPLE_PROMPT
-    cache: dict[str, list] = {}
+    # Cache entries are namespaced by (llm identity, prompt-template hash,
+    # passage hash): a cache filled by one model/prompt can never serve
+    # hits to another, and one file can hold several namespaces without
+    # ever discarding expensive extractions. Legacy flat caches (passage
+    # hash only, no namespace) are honoured only when no identity is
+    # declared and the default template is in use, with a warning.
+    template_hash = _hash(template)
+    namespace = f"{llm_identity or ''}|{template_hash}|"
+    entries: dict[str, list] = {}
+    legacy_entries: dict[str, list] = {}
     cache_p = Path(cache_path) if cache_path else None
     if cache_p and cache_p.exists():
         try:
-            cache = json.loads(cache_p.read_text())
+            loaded = json.loads(cache_p.read_text())
         except json.JSONDecodeError:
-            cache = {}
+            loaded = {}
+        if isinstance(loaded, dict) and loaded.get("_format") == 2:
+            entries = dict(loaded.get("entries", {}))
+        elif isinstance(loaded, dict):
+            if llm_identity is None and prompt_template is None:
+                legacy_entries = loaded
+                warnings.warn(
+                    f"{cache_p}: legacy triple cache without model/prompt "
+                    "identity — reused because no llm_identity is declared; "
+                    "pass llm_identity= so future caches are verifiable",
+                    stacklevel=2)
+            else:
+                warnings.warn(
+                    f"{cache_p}: legacy triple cache ignored (it carries no "
+                    "identity and llm_identity/prompt_template are set); "
+                    "entries will be re-extracted under a namespaced key",
+                    stacklevel=2)
 
-    # Step 1: extract triples per doc (with caching)
+    def key_for(text: str) -> str:
+        return namespace + _hash(text)
+
+    # Step 1: extract triples per doc (cached; failures COUNTED, not
+    # silently swallowed as "no triples")
+    stats = {"docs": len(documents), "empty_docs": 0, "cache_hits": 0,
+             "llm_calls": 0, "failed_calls": 0, "unparseable": 0}
     triples_per_doc: dict[str, list[tuple[str, str, str]]] = {}
-    iterator = enumerate(documents)
-    if progress:
-        try:
-            from tqdm import tqdm
-            iterator = enumerate(tqdm(documents, desc="LLM KG extract"))
-        except ImportError:
-            pass
-
-    for _, doc in iterator:
+    pending: list = []
+    for doc in documents:
         if not doc.text.strip():
             triples_per_doc[doc.id] = []
+            stats["empty_docs"] += 1
             continue
-        key = _hash(doc.text)
-        if key in cache:
-            triples_per_doc[doc.id] = [tuple(t) for t in cache[key]]
-            continue
+        k2 = key_for(doc.text)
+        k1 = _hash(doc.text)
+        if k2 in entries:
+            triples_per_doc[doc.id] = [tuple(t) for t in entries[k2]]
+            stats["cache_hits"] += 1
+        elif k1 in legacy_entries:
+            triples_per_doc[doc.id] = [tuple(t) for t in legacy_entries[k1]]
+            entries[k2] = legacy_entries[k1]      # migrate into namespace
+            stats["cache_hits"] += 1
+        else:
+            pending.append(doc)
+
+    def extract(doc):
         prompt = template.format(passage=doc.text)
         try:
             raw = llm(prompt)
-        except Exception:
-            triples_per_doc[doc.id] = []
-            continue
-        triples = _parse_triples(raw)
-        triples_per_doc[doc.id] = triples
-        cache[key] = [list(t) for t in triples]
+        except Exception as e:      # noqa: BLE001 — provider errors vary
+            return doc, None, e
+        return doc, _parse_triples(raw), None
 
-    # Persist cache
+    results = []
+    if pending:
+        if max_workers > 1:
+            from concurrent.futures import ThreadPoolExecutor
+            with ThreadPoolExecutor(max_workers=max_workers) as pool:
+                it = pool.map(extract, pending)
+                if progress:
+                    try:
+                        from tqdm import tqdm
+                        it = tqdm(it, total=len(pending), desc="LLM KG extract")
+                    except ImportError:
+                        pass
+                results = list(it)
+        else:
+            it = pending
+            if progress:
+                try:
+                    from tqdm import tqdm
+                    it = tqdm(pending, desc="LLM KG extract")
+                except ImportError:
+                    pass
+            results = [extract(d) for d in it]
+
+    for doc, triples, err in results:      # pool.map preserves doc order
+        stats["llm_calls"] += 1
+        if err is not None:
+            stats["failed_calls"] += 1
+            triples_per_doc[doc.id] = []
+            continue                        # NOT cached: retry next build
+        if triples is None:
+            stats["unparseable"] += 1       # malformed reply, NOT a result
+            triples_per_doc[doc.id] = []
+            continue                        # NOT cached: retry next build
+        # A parsed reply — including a legitimately empty triple list —
+        # is a result and is cached.
+        triples_per_doc[doc.id] = triples
+        entries[key_for(doc.text)] = [list(t) for t in triples]
+
+    if stats["failed_calls"] or stats["unparseable"]:
+        warnings.warn(
+            f"LLM KG extraction: {stats['failed_calls']}/{stats['llm_calls']} "
+            f"calls failed, {stats['unparseable']}/{stats['llm_calls']} "
+            "replies unparseable — those documents have NO triples in this "
+            "KG and were NOT cached (rerun to retry). Inspect "
+            "kg.extraction_stats.",
+            stacklevel=2)
+
+    # Persist cache (format 2, namespaced)
     if cache_p is not None:
         cache_p.parent.mkdir(parents=True, exist_ok=True)
-        cache_p.write_text(json.dumps(cache, indent=2))
+        cache_p.write_text(json.dumps(
+            {"_format": 2, "entries": entries,
+             "last_writer": {"llm_identity": llm_identity,
+                             "template_hash": template_hash}},
+            indent=2))
 
     # Step 2: canonicalise entity mentions across all triples
     all_mentions: list[str] = []
@@ -199,7 +292,7 @@ def build_entity_kg_llm(
         c: _entity_node(c) for c in canonical_to_displays
     }
     entity_node_to_label: dict[str, str] = {
-        nid: max(canonical_to_displays[c], key=len)
+        nid: max(sorted(canonical_to_displays[c]), key=len)   # stable ties
         for c, nid in entity_canonical_to_node.items()
     }
 
@@ -257,7 +350,7 @@ def build_entity_kg_llm(
             if mc:
                 alias_to_node.setdefault(mc, nid)
 
-    return EntityKG(
+    kg = EntityKG(
         graph=G,
         doc_to_entities=doc_to_entities,
         entity_to_docs=dict(entity_to_docs),
@@ -265,3 +358,5 @@ def build_entity_kg_llm(
         entity_node_to_label=entity_node_to_label,
         alias_to_node=alias_to_node,
     )
+    kg.extraction_stats = stats   # explicit failure policy: visible, not silent
+    return kg

@@ -41,6 +41,7 @@ class QdrantStore:
         self._vec_cache: dict[str, np.ndarray] = {}
         self._neighbor_cache: dict[str, list[str]] = {}
         self._all_ids_cache: list[str] | None = None
+        self.mutation_counter = 0
 
         # Create collection if missing
         existing = {c.name for c in client.get_collections().collections}
@@ -88,25 +89,47 @@ class QdrantStore:
         store.upsert(documents)
         return store
 
+    def _invalidate(self) -> None:
+        """Derived state is stale the moment a write MAY have reached the
+        backend. Called before the first batch and again after the last
+        batch or on failure, so neither pre-write nor mid-write caches
+        outlive a partially applied upsert (external review, 2026-09-14)."""
+        self._all_ids_cache = None
+        self._neighbor_cache.clear()
+        self.mutation_counter += 1
+
     def upsert(self, documents: list[Document], batch_size: int = 256):
         from qdrant_client.models import PointStruct
         # Qdrant point ids must be ints or UUIDs. We use a stable hash for
         # string ids and keep the original id in the payload.
-        for i in range(0, len(documents), batch_size):
-            chunk = documents[i:i + batch_size]
-            points = []
-            for d in chunk:
-                pid = _stable_id(d.id)
-                payload = {"hubmesh_id": d.id, "text": d.text}
-                payload.update({f"meta_{k}": v for k, v in d.metadata.items()})
-                vec = np.asarray(d.vector, dtype=np.float32)
-                points.append(PointStruct(
-                    id=pid, vector=vec.tolist(), payload=payload,
-                ))
+        self._invalidate()
+        chunk: list[Document] = []
+        try:
+            for i in range(0, len(documents), batch_size):
+                chunk = documents[i:i + batch_size]
+                points = []
+                vecs: dict[str, np.ndarray] = {}
+                for d in chunk:
+                    pid = _stable_id(d.id)
+                    payload = {"hubmesh_id": d.id, "text": d.text}
+                    payload.update({f"meta_{k}": v for k, v in d.metadata.items()})
+                    vec = np.asarray(d.vector, dtype=np.float32)
+                    points.append(PointStruct(
+                        id=pid, vector=vec.tolist(), payload=payload,
+                    ))
+                    vecs[d.id] = vec
+                self._client.upsert(collection_name=self.collection, points=points)
+                # Local vector cache is populated only AFTER the backend
+                # confirmed this batch — never install unconfirmed vectors
+                # as authoritative.
                 if self._cache_vectors:
-                    self._vec_cache[d.id] = vec
-            self._client.upsert(collection_name=self.collection, points=points)
-        self._all_ids_cache = None  # invalidate
+                    self._vec_cache.update(vecs)
+        except BaseException:
+            for d in chunk:
+                self._vec_cache.pop(d.id, None)   # unknown state → re-fetch
+            raise
+        finally:
+            self._invalidate()
 
     # ---- VectorStore protocol ----
 
@@ -146,8 +169,9 @@ class QdrantStore:
         return [self.get(i) for i in doc_ids]
 
     def neighbors(self, doc_id: str, k: int) -> list[str]:
-        if doc_id in self._neighbor_cache:
-            return self._neighbor_cache[doc_id][:k]
+        cached = self._neighbor_cache.get(doc_id)
+        if cached is not None and len(cached) >= k:
+            return cached[:k]
         vec = self.vector_of(doc_id)
         # search returns the doc itself as the closest match — drop it
         hits = self.search(vec, top_k=k + 1)

@@ -85,8 +85,9 @@ class EntityKG:
                     if c in canon or canon in c
                 ]
                 if hits:
-                    # Prefer the longer (more specific) canonical form
-                    hits.sort(key=lambda nid: -len(self.entity_node_to_label[nid]))
+                    # Prefer the longer (more specific) canonical form;
+                    # equal lengths break by node id (hash-seed-proof)
+                    hits.sort(key=lambda nid: (-len(self.entity_node_to_label[nid]), nid))
                     out.append(hits[0])
         # dedupe but preserve order
         seen = set()
@@ -173,11 +174,14 @@ def build_entity_kg(
                 if c:
                     canon_set.add(c)
                     canonical_to_displays[c].add(m)
-            sorted_canons = sorted(canon_set, key=len, reverse=True)
+            # Deterministic across processes: sets iterate in hash order,
+            # so every tie (equal length, absorber choice) is broken by
+            # the string itself.
+            sorted_canons = sorted(canon_set, key=lambda c: (-len(c), c))
             keep: set[str] = set()
             for c in sorted_canons:
                 absorbed = False
-                for longer in keep:
+                for longer in sorted(keep):
                     if c != longer and (f" {c} " in f" {longer} "
                                         or longer.startswith(c + " ")
                                         or longer.endswith(" " + c)):
@@ -195,7 +199,9 @@ def build_entity_kg(
         nid = _entity_node(c)
         entity_canonical_to_node[c] = nid
         # display label = longest mention seen
-        entity_node_to_label[nid] = max(displays, key=len) if displays else c
+        # sorted(): equal-length display forms would otherwise be chosen
+        # by set order (hash-seed dependent) — labels must be stable
+        entity_node_to_label[nid] = max(sorted(displays), key=len) if displays else c
 
     # Build the graph
     G = nx.Graph()
@@ -205,8 +211,8 @@ def build_entity_kg(
         d_node = _doc_node(doc_id)
         G.add_node(d_node, kind="doc", doc_id=doc_id)
         ent_nodes: set[str] = set()
-        for c in canon_set:
-            if c not in entity_canonical_to_node:
+        for c in sorted(canon_set):        # graph insertion order = PPR
+            if c not in entity_canonical_to_node:   # matrix row order
                 continue   # filtered above
             e_node = entity_canonical_to_node[c]
             G.add_node(e_node, kind="entity", canonical=c,

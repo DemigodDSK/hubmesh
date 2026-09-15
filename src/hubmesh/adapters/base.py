@@ -33,6 +33,17 @@ class VectorStore(Protocol):
         """Return every doc_id (used for full-graph operations during prototype;
         avoid calling on giant indices)."""
 
+    def vector_of(self, doc_id: str) -> np.ndarray:
+        """Raw embedding of a stored document. REQUIRED: the Planner reads
+        vectors for relevance scoring and redundancy control, and fails at
+        construction if an adapter omits this. Adapters over remote stores
+        should cache on first lookup."""
+
     @property
     def dim(self) -> int:
         """Embedding dimension."""
+
+    # Optional (read by the Planner via getattr, default 0): a counter an
+    # adapter increments on every write, so Planner-side caches derived
+    # from the corpus (normalized vector matrix) invalidate correctly.
+    mutation_counter: int = 0

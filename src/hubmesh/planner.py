@@ -11,7 +11,7 @@ from .ppr import personalized_pagerank, PPRSolver
 from .scoring import (
     ScoringWeights, compute_relevance, compute_coherence, composite_score,
 )
-from .packing import pack
+from .packing import pack, estimate_tokens
 from .kg import EntityKG, extract_query_entities
 from .paths import build_reasoning_paths
 
@@ -24,6 +24,10 @@ class PlannerConfig:
     subgraph_cap: int = 2000       # hard cap on subgraph size (latency invariant)
     ppr_alpha: float = 0.15        # teleport probability
     redundancy_lambda: float = 0.3 # MMR diversity vs. score tradeoff
+    token_counter: Callable[[str], int] | None = None  # budget counter;
+                                   # None -> chars/4 estimate. Pass a
+                                   # tokenizer-backed callable for exact
+                                   # model-token budgets.
     weights: ScoringWeights = None # set in __post_init__
 
     # Anchoring is robust for single-community retrieval but actively harmful
@@ -45,11 +49,15 @@ class PlannerConfig:
     # 3-4-hop combined with convergence (γ=1 recommended there).
     hub_discount: float = 0.0
     # use_convergence — score each doc by the geometric mean of per-seed
-    # PPR mass (reachable from EVERY query anchor beats flooded from
-    # one); enters the composite through the coherence slot, weighted by
-    # weights.coherence. Default ON since v0.4.0: +2.2 pts MuSiQue /
-    # +1.0 HotpotQA recall@10 for ~1.5-1.8× query cost on multi-seed
-    # queries (still zero LLM tokens, deterministic).
+    # PPR mass (first 4 seeds); enters the composite through the
+    # coherence slot, weighted by weights.coherence. Active only when the
+    # query resolves to >= 2 seeds. Measured (2026-09-14, MiniLM): +0.9
+    # pts recall@10 over off on full MuSiQue dev (N=2,417) and +1.1 on
+    # HotpotQA N=500; a single-solve log(pooled PPR) in the same slot
+    # matches it in aggregate, the geomean keeps ~1 pt at 3-4 hops and
+    # costs one extra batched solve (~1.5-2× query time on multi-seed
+    # queries; zero LLM tokens, deterministic). Trades top-rank
+    # precision for depth — use_convergence=False for top_k <= 2.
     use_convergence: bool = True
 
     def __post_init__(self):
@@ -118,6 +126,48 @@ class Planner:
                       hub_discount=self.config.hub_discount)
             if kg is not None else None
         )
+        # KG-mode relevance needs every doc vector, unit-normalized, on
+        # every query. Cached per store version (adapters bump
+        # `mutation_counter` on writes) instead of re-fetched + re-normed
+        # per query — the dominant per-query cost against remote stores.
+        self._kg_mat_cache: tuple[int, list[str], np.ndarray | None] | None = None
+
+    def _fetch_docs(self, ids: list[str]) -> dict[str, Document]:
+        """Batched body fetch (adapters can override get_many with a
+        single backend call). A batch containing an unknown id falls back
+        to per-id fetches so one stale id can't blank the whole result."""
+        try:
+            return {d.id: d for d in self.store.get_many(ids)}
+        except KeyError:
+            out = {}
+            for i in ids:
+                try:
+                    out[i] = self.store.get(i)
+                except KeyError:
+                    continue
+            return out
+
+    def _kg_doc_matrix(self) -> tuple[list[str], np.ndarray | None]:
+        version = getattr(self.store, "mutation_counter", 0)
+        if self._kg_mat_cache is not None and self._kg_mat_cache[0] == version:
+            return self._kg_mat_cache[1], self._kg_mat_cache[2]
+        doc_ids = sorted(n[4:] for n in self.kg.graph.nodes
+                         if n.startswith("doc:"))
+        rows, valid_ids = [], []
+        for doc_id in doc_ids:
+            try:
+                rows.append(self._vec_of(doc_id))
+                valid_ids.append(doc_id)
+            except (KeyError, AttributeError):
+                continue
+        if not rows:                       # no vectors at all -> empty result
+            self._kg_mat_cache = (version, [], None)
+            return [], None
+        mat = np.stack(rows).astype(np.float32)
+        norms = np.linalg.norm(mat, axis=1, keepdims=True)
+        norms[norms == 0] = 1.0
+        self._kg_mat_cache = (version, valid_ids, mat / norms)
+        return valid_ids, self._kg_mat_cache[2]
 
     def retrieve(
         self,
@@ -221,13 +271,13 @@ class Planner:
 
         # Pull docs and rank
         ordered = [(n, s) for n, s in
-                   sorted(composite.items(), key=lambda kv: -kv[1])
+                   sorted(composite.items(), key=lambda kv: (-kv[1], kv[0]))
                    if n not in exclude]
         scored: list[ScoredDocument] = []
-        for rank, (nid, score) in enumerate(ordered):
-            try:
-                doc = self.store.get(nid)
-            except KeyError:
+        fetched = self._fetch_docs([n for n, _ in ordered[:top_k * 5]])
+        for rank, (nid, score) in enumerate(ordered[:top_k * 5]):
+            doc = fetched.get(nid)
+            if doc is None:
                 continue
             scored.append(ScoredDocument(
                 doc=doc,
@@ -246,6 +296,7 @@ class Planner:
             redundancy_lambda=self.config.redundancy_lambda,
             vec_of=self._vec_of,
             max_docs=top_k,
+            count_tokens=self.config.token_counter or estimate_tokens,
         )
 
         return RetrievalResult(
@@ -301,7 +352,9 @@ class Planner:
             seed_docs = [doc_id for doc_id, _ in self.store.search(qvec, top_k=3)]
             for d in seed_docs:
                 ents = kg.doc_to_entities.get(d, set())
-                ppr_seeds.extend([e for e in ents if e in kg.graph])
+                # sorted: set order is hash-seed dependent and these become
+                # the diffusion inputs — cross-process determinism
+                ppr_seeds.extend([e for e in sorted(ents) if e in kg.graph])
             ppr_seeds = list(dict.fromkeys(ppr_seeds))[:8]   # dedup, cap
 
         # 2. PPR over the bipartite KG (uses precomputed sparse solver)
@@ -316,30 +369,18 @@ class Planner:
         #    doc set in one matmul rather than per-doc Python loop (~3×
         #    speed-up on the doc-scoring stage).
         exclude = set(exclude_docs or ())
-        doc_ids = [n[4:] for n in kg.graph.nodes
-                   if n.startswith("doc:") and n[4:] not in exclude]
-        if not doc_ids:
+        valid_ids, mat_unit = self._kg_doc_matrix()
+        if not valid_ids:
             doc_relevance, doc_structural = {}, {}
         else:
-            mat_rows = []
-            valid_ids: list[str] = []
-            for doc_id in doc_ids:
-                try:
-                    mat_rows.append(self._vec_of(doc_id))
-                    valid_ids.append(doc_id)
-                except (KeyError, AttributeError):
-                    continue
-            mat = np.stack(mat_rows).astype(np.float32)
-            mat_norms = np.linalg.norm(mat, axis=1, keepdims=True)
-            mat_norms[mat_norms == 0] = 1.0
-            mat_unit = mat / mat_norms
             qn = qvec / max(float(np.linalg.norm(qvec)), 1e-12)
             sims = (mat_unit @ qn).astype(np.float64)
             doc_relevance = {valid_ids[i]: float(sims[i])
-                             for i in range(len(valid_ids))}
+                             for i in range(len(valid_ids))
+                             if valid_ids[i] not in exclude}
             doc_structural = {
-                valid_ids[i]: float(ppr_scores.get(f"doc:{valid_ids[i]}", 0.0))
-                for i in range(len(valid_ids))
+                d: float(ppr_scores.get(f"doc:{d}", 0.0))
+                for d in doc_relevance
             }
 
         # Multi-component scoring on docs. The coherence slot is neutral
@@ -369,12 +410,16 @@ class Planner:
             integration=self.config.integration,
         )
 
-        ordered = sorted(composite.items(), key=lambda kv: -kv[1])
+        ordered = sorted(composite.items(), key=lambda kv: (-kv[1], kv[0]))
         scored: list[ScoredDocument] = []
-        for rank, (doc_id, score) in enumerate(ordered):
-            try:
-                doc = self.store.get(doc_id)
-            except KeyError:
+        # Fetch document bodies only for what packing can consider
+        # (5×k) — not the whole ranked corpus — and in ONE batched call;
+        # against remote stores the old path was one round-trip per
+        # document per query.
+        fetched = self._fetch_docs([d for d, _ in ordered[:top_k * 5]])
+        for rank, (doc_id, score) in enumerate(ordered[:top_k * 5]):
+            doc = fetched.get(doc_id)
+            if doc is None:
                 continue
             scored.append(ScoredDocument(
                 doc=doc,
@@ -390,6 +435,7 @@ class Planner:
             redundancy_lambda=self.config.redundancy_lambda,
             vec_of=self._vec_of,
             max_docs=top_k,
+            count_tokens=self.config.token_counter or estimate_tokens,
         )
 
         # Build reasoning paths from query entities → retrieved docs.

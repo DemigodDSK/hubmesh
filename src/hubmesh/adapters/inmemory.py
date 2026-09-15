@@ -28,6 +28,7 @@ class InMemoryStore:
         self._mat_unit: np.ndarray = self._mat / norms
         self._k_graph = max(1, k)
         self._neighbor_cache: dict[str, list[str]] = {}
+        self.mutation_counter = 0      # immutable after construction
         # For corpora ≤ 5K we eagerly precompute the full kNN graph (cheap,
         # ~free for the planner's kNN-mode). For larger corpora it would
         # OOM — and KG-mode doesn't use the kNN graph at all — so we go
@@ -128,7 +129,9 @@ class InMemoryStore:
 
     def neighbors(self, doc_id: str, k: int) -> list[str]:
         nb = self._neighbor_cache.get(doc_id)
-        if nb is None:
+        # The eager graph is built at k_graph; a larger request must
+        # recompute (bounded by n-1) instead of silently truncating.
+        if nb is None or (len(nb) < k and len(nb) < len(self._ids) - 1):
             nb = self._compute_neighbors_lazy(doc_id, max(k, self._k_graph))
         return nb[:k]
 

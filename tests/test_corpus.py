@@ -112,7 +112,8 @@ def test_warmup_preloads_planners(tmp_path):
     report = fresh.warmup()
     assert report["embedder"] == "ok"
     assert report["corpus:demo"] == "ok"
-    assert "demo" in fresh._planners
+    # planners are cached per (name, config) since the batch-4 fix
+    assert any(k[0] == "demo" for k in fresh._planners)
     # warmup is best-effort: a broken corpus reports, never raises
     (tmp_path / "broken").mkdir()
     (tmp_path / "broken" / "meta.json").write_text("{}")

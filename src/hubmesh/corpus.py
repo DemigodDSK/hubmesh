@@ -108,8 +108,11 @@ class CorpusManager:
                                         # survive for in-flight readers
                                         # before GC (15 min default)
     _planners: dict = field(default_factory=dict, repr=False)
+    _loaded: dict = field(default_factory=dict, repr=False)
     _embed_lock: threading.Lock = field(default_factory=threading.Lock,
                                         repr=False)
+    _cache_lock: threading.RLock = field(default_factory=threading.RLock,
+                                         repr=False)
 
     def __post_init__(self):
         self.root = Path(self.root).expanduser()
@@ -305,7 +308,8 @@ class CorpusManager:
                 self._mark_retired(cdir / prev)
             self._prune_locked(cdir, current=gen_name)
 
-        self._planners.pop(name, None)   # invalidate any cached planner
+        with self._cache_lock:
+            self._drop_name(name)    # every cached planner/config for this name
         return meta
 
     # ---- writer coordination / retention ---------------------------
@@ -398,6 +402,13 @@ class CorpusManager:
     # ---- load / query ----------------------------------------------
 
     def load(self, name: str) -> tuple[InMemoryStore, EntityKG]:
+        """Load the live generation of `name` as (store, kg)."""
+        _, store, kg = self._load_gen(name)
+        return store, kg
+
+    def _load_gen(self, name: str) -> tuple[str | None, InMemoryStore, EntityKG]:
+        """`load()` plus the generation name the data came from (None for
+        the legacy flat layout) — the cache key for freshness checks."""
         cdir = self._corpus_dir(name)
         # Resolve the live generation ONCE; every subsequent read stays
         # inside it, so a rebuild that publishes mid-load cannot hand this
@@ -459,18 +470,82 @@ class CorpusManager:
                                      vector=vecs[rec["id"]],
                                      metadata=rec.get("metadata", {})))
         kg = kg_from_dict(json.loads((gdir / "kg.json").read_text()))
-        return InMemoryStore(docs), kg
+        return gen, InMemoryStore(docs), kg
+
+    def _peek_gen(self, name: str) -> str | None:
+        """The generation CURRENT names right now (None: legacy layout or
+        no corpus). One small file read — cheap enough per request."""
+        cdir = self._corpus_dir(name)
+        return self._read_pointer(cdir) if cdir.exists() else None
+
+    def _drop_name(self, name: str) -> None:
+        """Forget every cached object derived from `name` (caller holds
+        the cache lock)."""
+        self._loaded.pop(name, None)
+        for key in [k for k in self._planners if k[0] == name]:
+            self._planners.pop(key, None)
+
+    def _load_current(self, name: str) -> tuple[str | None, InMemoryStore, EntityKG]:
+        """Load the live generation and confirm it is STILL live after the
+        load. A publish that landed mid-load triggers a reload (bounded);
+        exhausting the bound returns the last load, which the caller then
+        serves without pinning it."""
+        gen = store = kg = None
+        for _ in range(3):
+            gen, store, kg = self._load_gen(name)
+            if self._peek_gen(name) == gen:
+                break
+        return gen, store, kg
+
+    @staticmethod
+    def _config_key(config: PlannerConfig | None) -> str:
+        """Stable identity of a PlannerConfig for cache keying — the cache
+        must never hand back a planner built for a different config
+        (external review: convergence-off then convergence-on returned the
+        first planner unchanged)."""
+        if config is None:
+            return "default"
+        from dataclasses import asdict
+        return json.dumps(asdict(config), sort_keys=True, default=str)
 
     def planner(self, name: str, config: PlannerConfig | None = None) -> Planner:
-        """Planner for a named corpus, cached per manager (the PPR
-        transition matrix is precomputed once at construction)."""
-        if name not in self._planners:
-            store, kg = self.load(name)
-            self._planners[name] = Planner(
-                store=store, kg=kg, nlp=self.nlp,
-                embed=self._get_embed(), config=config,
-            )
-        return self._planners[name]
+        """Planner for a named corpus, cached per manager AND per config
+        (the PPR transition matrix is precomputed once at construction;
+        store+KG are loaded once and shared across configs).
+
+        Freshness contract (external review, 2026-09-14): the cache is
+        keyed by GENERATION. Every call re-reads the CURRENT pointer, so
+        a rebuild published by this manager or by another process is
+        picked up on the next call, and a load that raced with a publish
+        is never installed over the newer generation — the retired one
+        is served at most to the request that was already loading it,
+        never pinned.
+        """
+        key = (name, self._config_key(config))
+        current = self._peek_gen(name)
+        with self._cache_lock:
+            loaded = self._loaded.get(name)
+            if loaded is not None and loaded[0] != current:
+                self._drop_name(name)           # superseded generation
+                loaded = None
+            if loaded is not None and key in self._planners:
+                return self._planners[key]
+        if loaded is None:
+            loaded = self._load_current(name)   # slow path, outside the lock
+        gen, store, kg = loaded
+        planner = Planner(store=store, kg=kg, nlp=self.nlp,
+                          embed=self._get_embed(), config=config)
+        with self._cache_lock:
+            # Install only if CURRENT still names the generation this
+            # planner was built from; otherwise serve it uncached and let
+            # the next call reload.
+            if self._peek_gen(name) == gen:
+                existing = self._loaded.get(name)
+                if existing is None or existing[0] != gen:
+                    self._drop_name(name)
+                    self._loaded[name] = loaded
+                self._planners[key] = planner
+        return planner
 
     def list(self) -> dict[str, dict]:
         if not self.root.exists():

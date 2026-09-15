@@ -76,22 +76,56 @@ class PPRSolver:
         rows, cols, data = [], [], []
         for u, v, d in G.edges(data=True):
             w = float(d.get(weight_attr, 1.0)) if weight_attr else 1.0
+            if not np.isfinite(w) or w < 0:
+                raise ValueError(
+                    f"edge ({u!r}, {v!r}) has invalid weight {w!r}: weights "
+                    "must be finite and non-negative")
             if hub_discount:
                 for endpoint in (u, v):
                     if isinstance(endpoint, str) and endpoint.startswith("ent:"):
                         w /= float(np.log(np.e + G.degree(endpoint))) ** hub_discount
             ui, vi = self.idx[u], self.idx[v]
             rows.append(ui); cols.append(vi); data.append(w)
-            rows.append(vi); cols.append(ui); data.append(w)
+            # Symmetrize with ONE entry per undirected edge direction; a
+            # self-loop (u == v) is a single diagonal entry, not two — the
+            # COO constructor sums duplicates, which doubled self-loop
+            # weight and disagreed with networkx (external review,
+            # 2026-09-14). LLM triples can yield self-relations.
+            if ui != vi:
+                rows.append(vi); cols.append(ui); data.append(w)
         A = sp.csr_matrix((data, (rows, cols)), shape=(n, n), dtype=np.float64)
 
-        # Row-normalize to a stochastic transition matrix M = D^{-1} A
+        # Row-normalize to a stochastic transition matrix M = D^{-1} A.
+        # Dangling nodes (no out-edges) get a zero row; their mass is
+        # redistributed to the teleport vector at solve time — the
+        # standard PageRank treatment. (Previously it simply leaked:
+        # a seed on an isolated node converged to total mass α.)
         deg = np.asarray(A.sum(axis=1)).ravel()
-        deg[deg == 0] = 1.0  # dangling nodes — self-loop equivalent
-        Dinv = sp.diags(1.0 / deg)
+        self._dangling = deg == 0
+        safe_deg = np.where(self._dangling, 1.0, deg)
+        Dinv = sp.diags(1.0 / safe_deg)
         # Use M.T at run time for the matvec  p_{t+1} = (1-α) M^T p_t + α r
         self._MT = (Dinv @ A).T.tocsr()
         self._n = n
+
+    @staticmethod
+    def _check_alpha(alpha: float) -> None:
+        if not (isinstance(alpha, (int, float)) and np.isfinite(alpha)
+                and 0.0 < alpha <= 1.0):
+            raise ValueError(f"alpha must be in (0, 1], got {alpha!r}")
+
+    def _restart(self, seeds: list) -> np.ndarray:
+        """Teleport vector: uniform over the DISTINCT valid seeds (a
+        repeated id must not shrink the restart mass), uniform over all
+        nodes when none match."""
+        r = np.zeros(self._n, dtype=np.float64)
+        valid = list(dict.fromkeys(s for s in seeds if s in self.idx))
+        if valid:
+            for s in valid:
+                r[self.idx[s]] = 1.0 / len(valid)
+        else:
+            r[:] = 1.0 / self._n
+        return r
 
     def solve(
         self,
@@ -100,22 +134,19 @@ class PPRSolver:
         max_iter: int = 50,
         tol: float = 1e-6,
     ) -> dict:
-        """Returns {node: ppr_score} dict."""
+        """Returns {node: ppr_score} dict. Total mass is 1.0 (dangling
+        mass is redistributed via the restart vector)."""
+        self._check_alpha(alpha)
         n = self._n
         if n == 0:
             return {}
-        # Personalisation vector
-        r = np.zeros(n, dtype=np.float64)
-        valid = [s for s in seeds if s in self.idx]
-        if valid:
-            for s in valid:
-                r[self.idx[s]] = 1.0 / len(valid)
-        else:
-            r[:] = 1.0 / n   # fallback: uniform restart
+        r = self._restart(seeds)
+        dangling = self._dangling
 
         p = r.copy()
         for _ in range(max_iter):
-            p_new = (1.0 - alpha) * (self._MT @ p) + alpha * r
+            leaked = float(p[dangling].sum()) if dangling.any() else 0.0
+            p_new = (1.0 - alpha) * (self._MT @ p + leaked * r) + alpha * r
             if np.abs(p_new - p).sum() < tol:
                 p = p_new
                 break
@@ -135,21 +166,20 @@ class PPRSolver:
         This is the substrate for the convergence component — measuring
         whether a document is reachable from EVERY query anchor rather
         than merely flooded from one."""
+        self._check_alpha(alpha)
         n = self._n
         if n == 0:
             return [{} for _ in seed_groups]
         k = len(seed_groups)
-        R = np.zeros((n, k), dtype=np.float64)
-        for j, seeds in enumerate(seed_groups):
-            valid = [s for s in seeds if s in self.idx]
-            if valid:
-                for s in valid:
-                    R[self.idx[s], j] = 1.0 / len(valid)
-            else:
-                R[:, j] = 1.0 / n
+        R = np.stack([self._restart(seeds) for seeds in seed_groups], axis=1)
+        dangling = self._dangling
         P = R.copy()
         for _ in range(max_iter):
-            P_new = (1.0 - alpha) * (self._MT @ P) + alpha * R
+            if dangling.any():
+                leaked = P[dangling].sum(axis=0)          # per column
+                P_new = (1.0 - alpha) * (self._MT @ P + R * leaked) + alpha * R
+            else:
+                P_new = (1.0 - alpha) * (self._MT @ P) + alpha * R
             if np.abs(P_new - P).sum() < tol * k:
                 P = P_new
                 break

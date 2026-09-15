@@ -30,6 +30,7 @@ class ChromaStore:
         self._vec_cache: dict[str, np.ndarray] = {}
         self._neighbor_cache: dict[str, list[str]] = {}
         self._dim_cache: int | None = None
+        self.mutation_counter = 0
 
     # ---- ingest ----
 
@@ -69,23 +70,46 @@ class ChromaStore:
         store.upsert(documents)
         return store
 
+    def _invalidate(self) -> None:
+        """Derived state is stale the moment a write MAY have reached the
+        backend. Called before the first batch (anything cached pre-write
+        is stale) and again after the last batch or on failure (anything
+        a reader cached mid-write is stale too) — a batch that fails
+        halfway has still changed the collection (external review,
+        2026-09-14)."""
+        self._neighbor_cache.clear()
+        self.mutation_counter += 1
+
     def upsert(self, documents: list[Document], batch_size: int = 256):
-        for i in range(0, len(documents), batch_size):
-            chunk = documents[i:i + batch_size]
-            ids = [d.id for d in chunk]
-            embeddings = [np.asarray(d.vector, dtype=np.float32).tolist()
-                          for d in chunk]
-            metadatas = [{"text": d.text, **d.metadata} for d in chunk]
-            documents_text = [d.text for d in chunk]
-            self._collection.upsert(
-                ids=ids,
-                embeddings=embeddings,
-                metadatas=metadatas,
-                documents=documents_text,
-            )
-            if self._cache_vectors:
-                for d in chunk:
-                    self._vec_cache[d.id] = np.asarray(d.vector, dtype=np.float32)
+        self._invalidate()
+        chunk: list[Document] = []
+        try:
+            for i in range(0, len(documents), batch_size):
+                chunk = documents[i:i + batch_size]
+                ids = [d.id for d in chunk]
+                embeddings = [np.asarray(d.vector, dtype=np.float32).tolist()
+                              for d in chunk]
+                metadatas = [{"text": d.text, **d.metadata} for d in chunk]
+                documents_text = [d.text for d in chunk]
+                self._collection.upsert(
+                    ids=ids,
+                    embeddings=embeddings,
+                    metadatas=metadatas,
+                    documents=documents_text,
+                )
+                # Cache only vectors the backend has CONFIRMED.
+                if self._cache_vectors:
+                    for d in chunk:
+                        self._vec_cache[d.id] = np.asarray(d.vector, dtype=np.float32)
+        except BaseException:
+            # The failed batch's backend state is unknown: forget any
+            # local copy of those vectors so they are re-fetched, never
+            # trusted.
+            for d in chunk:
+                self._vec_cache.pop(d.id, None)
+            raise
+        finally:
+            self._invalidate()
 
     # ---- VectorStore protocol ----
 
@@ -121,8 +145,11 @@ class ChromaStore:
         return [self.get(i) for i in doc_ids]
 
     def neighbors(self, doc_id: str, k: int) -> list[str]:
-        if doc_id in self._neighbor_cache:
-            return self._neighbor_cache[doc_id][:k]
+        cached = self._neighbor_cache.get(doc_id)
+        # A cached list only satisfies requests up to its own length —
+        # a later, larger k must recompute rather than truncate.
+        if cached is not None and len(cached) >= k:
+            return cached[:k]
         vec = self.vector_of(doc_id)
         hits = self.search(vec, top_k=k + 1)
         nbrs = [hid for hid, _ in hits if hid != doc_id][:k]

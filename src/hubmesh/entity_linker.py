@@ -42,8 +42,12 @@ class SubstringLinker:
     def link(self, mentions: Iterable[str]) -> dict[str, str]:
         from .kg import canonicalize
         canons = {m: canonicalize(m) for m in mentions if canonicalize(m)}
-        # Collapse: longer canonical absorbs shorter token-aligned substrings
-        unique = sorted(set(canons.values()), key=len, reverse=True)
+        # Collapse: longer canonical absorbs shorter token-aligned substrings.
+        # Equal lengths tie-break lexically: a length-only sort leaves the
+        # order of same-length forms to set iteration (hash-seed dependent),
+        # so "lee" could map to "ann lee" in one process and "bob lee" in
+        # another (external review, 2026-09-14).
+        unique = sorted(set(canons.values()), key=lambda c: (-len(c), c))
         kept: list[str] = []
         absorbed: dict[str, str] = {}   # short → long
         for c in unique:
