@@ -36,7 +36,7 @@ class Wiki2Example:
     question: str
     answer: str
     qtype: str                                   # comparison | inference | compositional | bridge_comparison
-    gold_ids: list[str]                          # distinct supporting-fact paragraph ids
+    gold_ids: list[str]                          # distinct supporting-fact paragraph ids ("<title>::unresolved" if no context paragraph carries the title)
     candidate_ids: list[str]                     # the question's 10 context paragraphs
     candidate_paragraphs: list[tuple[str, str, str]]   # (id, title, joined_text)
 
@@ -87,8 +87,11 @@ def load_wiki2(n_questions: int = 1000, seed: int = 0,
             by_title.setdefault(title, pid)     # first paragraph carrying the title
         gold = []
         for title, _sent in row["supporting_facts"]:
-            pid = by_title.get(title)
-            if pid is not None and pid not in gold:
+            # A supporting title with no context paragraph keeps an id that no
+            # pool contains, so the question counts as a failure instead of
+            # silently losing a gold paragraph (protocol: absent = failure).
+            pid = by_title.get(title) or f"{title}::unresolved"
+            if pid not in gold:
                 gold.append(pid)
         examples.append(Wiki2Example(
             qid=str(row["_id"]), question=row["question"],

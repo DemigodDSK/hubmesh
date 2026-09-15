@@ -158,6 +158,88 @@ Metal (or fp32 on CPU where a manifest says so) and are labelled as such.
 Nothing about data, arms, candidate budgets, metrics, contrasts, the
 decision rule or the regression guard changes.
 
+## Amendment 2 — 2026-09-15, recorded before any result was examined
+
+Reason: after stage R had completed for all six configurations and
+before any reranking result existed, an external review of the runner
+found four measurement defects (below), and the library reranking path
+failed on Metal after about 25 queries because each distinct padded
+batch shape retained driver memory (the CPU fallback would need more
+than ten hours per configuration). The stage R outputs are kept, not
+recomputed: each file was identity-checked (question order against the
+loaded sample, every candidate in the pool, A4/A6/A7 exactly 50 distinct
+candidates for every question) and its stored gold lists equal the full
+gold lists for every question.
+
+Changes:
+
+1. **Reference arms keep a 10-prefix.** A1/A2/A3/A5 stored only 5 ids,
+   so their @10 secondary metrics equalled @5. Stage R now stores the
+   top-10 prefix; the existing stage files are extended without
+   re-embedding — dense, hybrid and hubmesh top-10 are exact prefixes of
+   A7, A4 and A8 (the union rule copies the base list's first 30
+   unchanged; A4 = hybrid[:50]; A8 = hubmesh[:50]), BM25 is recomputed
+   deterministically, and every stored 5-prefix is verified against the
+   extension. The arms remain top-5 arms for the primary metric.
+2. **A gold paragraph absent from the pool counts as failure**, as the
+   Metrics section already says. The runner filtered gold to the pool
+   before scoring; it now scores against the full gold list and records
+   `n_gold_unresolved` per question (a 2Wiki supporting fact whose title
+   has no context paragraph keeps an id no pool contains). In the six
+   stage files no gold paragraph is absent from its pool, so no number
+   changes; the code path does.
+3. **Reranking latency is measured per arm.** Stage K timed A4's list
+   only. Now each reranked arm's own candidate list is scored from
+   scratch and timed, on the first 100 questions of the primary
+   configuration and the first 50 of each secondary configuration
+   (`rerank_timing_queries` in the manifest); the composed latency of a
+   reranked arm is taken over those questions and the count is reported.
+   The scores used for ranking come from a separate untimed pass over
+   the union of the arms' candidates — one score per (question,
+   paragraph), shared by the two embedder configurations of a dataset
+   through a cache whose provenance (model, device, precision, buckets,
+   batch, sample) is recorded; the timing pass's scores are compared with
+   them and the largest difference is recorded.
+4. **Stage files are identity-checked before reuse:** dataset, sample
+   size, seed and embedder where recorded (files written before this
+   amendment record only the embedder), question order against the
+   loaded sample, every candidate id in the pool, exactly 50 distinct
+   candidates for A4/A6/A7, at most 50 distinct for A8, and the prefix
+   relations A1 ⊂ A7, A3 ⊂ A4, A5 ⊂ A8. New stage files also carry the
+   question-id and pool hashes, this file's hash and the commit.
+5. **Reranker implementation: fixed-shape bucketed batching.** The same
+   tokenizer, weights, pair truncation and 512 max length as the
+   library's CrossEncoder, but every pair is padded to the smallest of
+   128 / 256 / 384 / 512 tokens that holds it and scored in constant
+   batches of 8 (a short batch is padded with duplicate pairs), so the
+   model only ever sees four shapes. Ranking uses the raw logit — the
+   library's default sigmoid is monotone in it, and fp16 sigmoid
+   saturates high scores into ties. Validation, all recorded:
+   `benchmarks/validate_rerank.py` compares the two paths on the same
+   weights and device over 20 questions and against an fp32 CPU
+   reference over 5, and runs a 150-question endurance pass sampling
+   Metal memory (its result file is committed with the results); every
+   stage K run repeats a one-question comparison and aborts if any logit
+   differs by more than 0.05; Metal allocated/driver memory is sampled
+   through every run and stored in the manifest. Throughput figures are
+   what this machine measured, not a hardware limit.
+6. **A8 is labelled what it is: a variable-count, token-budgeted arm.**
+   One `retrieve(top_k=50, budget_tokens=10_000)` call returns fewer
+   than 50 paragraphs when the packing budget binds — 493 of the 1,000
+   primary-configuration questions (minimum 16) — so A8 reranks fewer
+   pairs than A4 for those questions. Its construction is not changed
+   (it is fixed above); the count is recorded per question and
+   summarised in every result file. A4, A6 and A7 rerank exactly 50 for
+   every question (verified per question), so the primary contrast is
+   unaffected.
+
+Disclosure: the stage R sanity check that established the candidate
+counts also displayed diagnostics (1) and (2) — seed counts and the
+hybrid/hubmesh overlap — for the primary configuration before stage K
+ran; no metric or contrast was computed. Nothing about data, the arms'
+candidate rules, metrics, contrasts, the decision rule or the regression
+guard changes.
+
 ## Decision table (engineering and product kept separate)
 
 | result | engineering next | product next |
