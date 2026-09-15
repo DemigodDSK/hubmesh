@@ -50,6 +50,14 @@ Fixes from an external code review (2026-09), grouped as reviewed.
 - CI runs the MCP tests; publishing verifies the tag matches the package
   version and runs the suite first.
 
+### Packaging — `mcp` pinned below 2.0 (2026-09-15)
+- The `mcp` and `all` extras now require `mcp>=1.0,<2`. The MCP Python
+  SDK 2.x (2.0.0–2.2.0 on PyPI as of 2026-09-15) renamed `FastMCP` to
+  `MCPServer` and removed `mcp.server.fastmcp`, which `hubmesh-mcp`
+  imports; a fresh `pip install hubmesh[mcp]` resolved to 2.x and failed
+  at import. Caught by CI once it started installing the extra (batch 3).
+  Migrating the server to the 2.x API is a separate task.
+
 ### Batch 5 — second external review (2026-09-14), current tree
 - **Security guidance (P1):** the tunnel recipe no longer suggests
   injecting the bearer token at an unauthenticated edge. The edge must

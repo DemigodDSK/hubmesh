@@ -36,10 +36,10 @@ qdrant = ["qdrant-client>=1.10"]
 chroma = ["chromadb>=0.5"]
 kg = ["spacy>=3.7"]
 linker = ["sentence-transformers>=3.0"]
-mcp = ["mcp>=1.0", "spacy>=3.7", "sentence-transformers>=3.0"]
+mcp = ["mcp>=1.0,<2", "spacy>=3.7", "sentence-transformers>=3.0"]
 all = ["qdrant-client>=1.10", "chromadb>=0.5",
        "spacy>=3.7", "sentence-transformers>=3.0",
-       "datasets>=2.18", "tqdm>=4.66", "mcp>=1.0"]
+       "datasets>=2.18", "tqdm>=4.66", "mcp>=1.0,<2"]
 
 [project.scripts]
 hubmesh-mcp = "hubmesh.mcp_server:main"
