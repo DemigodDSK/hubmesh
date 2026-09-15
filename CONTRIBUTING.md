@@ -35,8 +35,10 @@ python benchmarks/run_hotpotqa.py --n 100 --kg   # entity-linked KG mode
 ## Where help is most welcome
 
 - **Adapter implementations.** The `VectorStore` protocol in
-  `src/hubmesh/adapters/base.py` defines what's needed. Pinecone, Qdrant,
-  Weaviate, pgvector, Chroma all welcome.
+  `src/hubmesh/adapters/base.py` defines what's needed (including
+  `vector_of`, which the Planner requires). In-memory, Qdrant, and Chroma
+  ship in-tree; Pinecone, Weaviate, and pgvector are open (see issues #1
+  and #2).
 - **Better entity linking.** The current canonicalize-and-substring matcher
   in `src/hubmesh/kg.py` is intentionally crude. Embedding-based linking,
   BLINK-style learned linking, or LLM-extracted triples are all upgrades.

@@ -24,10 +24,13 @@ GraphRAG and HippoRAG showed that running a small Personalized PageRank over a k
 graph at query time can substantially improve multi-hop retrieval. `hubmesh` extends
 that line with two contributions:
 
-1. **Multi-component seed selection.** Instead of picking PPR seeds by raw query
-   similarity (which picks wrong-community seeds at high feature overlap), seeds are
-   chosen by a multi-component score combining query relevance, structural fit, and
-   coverage diversity.
+1. **Entity-anchored seeding, multi-component ranking.** In KG mode the PPR
+   seeds are the question's own entities resolved against the corpus graph
+   (alias index; falls back to the entities of the top cosine matches when
+   the question names none); in kNN mode they are the ANN top-k. The
+   multi-component score — cosine relevance, pooled PPR mass, and
+   multi-anchor convergence, min-max normalized and fused 3:1:1 — is
+   applied to the *document ranking*, not to seed choice.
 2. **Budget-aware context packing.** Once relevant entities are scored, pack them into
    the LLM's context window with explicit coverage and redundancy control rather than
    just truncating top-k.
@@ -85,7 +88,7 @@ import spacy
 nlp = spacy.load("en_core_web_sm")
 kg = build_entity_kg(docs, nlp=nlp)
 
-planner = Planner(store=store, kg=kg, nlp=nlp)
+planner = Planner(store=store, kg=kg, nlp=nlp, embed=embed)   # embed= needed for text queries
 result = planner.retrieve(query="Where was the founder of the company that bought Slack born?",
                           top_k=10, budget_tokens=4000)
 
@@ -107,9 +110,10 @@ kg = build_entity_kg_llm(docs, llm=llm, cache_path="kg_cache.json")
 
 # optional: cross-document entity dedup — same Linker protocol as the spaCy path
 kg = build_entity_kg_llm(docs, llm=llm, cache_path="kg_cache.json",
-                         linker=EmbeddingLinker(embed=make_st_embedder()))
+                         linker=EmbeddingLinker(embed=make_st_embedder()),
+                         llm_identity="gpt-5-mini")   # namespaces the cache
 
-planner = Planner(store=store, kg=kg)
+planner = Planner(store=store, kg=kg, nlp=nlp, embed=embed)
 ```
 
 ### Better entity linking
@@ -220,63 +224,89 @@ python -m spacy download en_core_web_sm   # required for KG mode
 
 ## Design
 
+KG mode — the benchmarked, production path:
+
 ```
-query → first-pass ANN  → induced subgraph → multi-component scoring
-                              ↓                        ↓
-                       community anchoring → Personalized PageRank
-                              ↓                        ↓
-                              └─────→ ranking → budget-aware packing → context
+query ─► spaCy NER ─► alias index ─► entity seeds ─► Personalized PageRank over the corpus KG
+  │                   (fallback: entities of the top-3 cosine documents)              │
+  └───────────► cosine similarity against every document ─────────────────────────────┤
+                                                                                      ▼
+            3·minmax(cosine) + 1·minmax(pooled PPR) + 1·minmax(per-anchor geomean)   [weighted sum]
+                                                                                      ▼
+                          budget-aware packing ─► context + sources + reasoning paths
 ```
 
-Each layer is independently testable and replaceable. Adapters wrap your existing vector
-DB so you don't have to migrate.
+kNN mode (no KG; prototyping): first-pass ANN → capped induced proximity
+subgraph → PPR from the ANN seeds → the same scoring and packing.
+Community anchoring exists for single-topic retrieval and is off by
+default.
+
+Each layer is independently testable and replaceable. Adapters wrap your
+existing vector DB so you don't have to migrate — note that KG mode
+scores every document (vectors are gathered once per store version and
+cached) and uses the store's ANN index only for the seed fallback.
 
 ## Benchmarks
 
-**Headline:** on multi-hop QA, hubmesh's KG mode beats both naive cosine
-retrieval and a HippoRAG-style PPR-only ablation that uses the same KG,
-at every hop depth.
+Supporting-fact paragraph recall over pooled distractor corpora. Every
+row is a separate experiment: **document representation and embedding
+model change the absolute numbers materially**, so rows are never
+compared across representations. Protocol, ablations and limits are in
+[BENCHMARKS.md](BENCHMARKS.md).
 
-| Benchmark | Setting | recall@10 vs naive |
-|---|---|---:|
-| **HotpotQA** dev, **N=7405** (full) | KG mode | **+5.90 pts** |
-| HotpotQA dev, N=500 | KG mode | **+5.0 pts** |
-| MuSiQue dev, N=300, 2-hop | KG mode | **+6.0 pts** |
-| MuSiQue dev, N=300, 3-hop | KG mode | +3.2 pts |
-| MuSiQue dev, N=300, 4-hop | KG mode | **+5.0 pts** |
+**Full HotpotQA dev (7,405 questions, 66,581 pooled paragraphs),
+hubmesh vs naive cosine, v0.4 defaults:**
 
-All rows measured with v0.4.0 defaults (alias-indexed seeds + NNSI-KG
-convergence; ablation JSONs committed in `benchmarks/`). Disclosed:
-convergence trades top-rank precision for depth recall — recall@2 is
-**−0.75 pts vs naive on full dev** (dips ≤0.5 at smaller n); if you
-retrieve with `top_k=2`, set `use_convergence=False`. Multi-seed
-queries cost ~1.5–1.8× (still zero LLM tokens, deterministic).
+| representation · embedding | naive @10 | hubmesh @10 | Δ @10 | Δ @5 | Δ @2 |
+|---|---:|---:|---:|---:|---:|
+| body only · MiniLM-L6 | 69.3% | 75.2% | **+5.90** | +4.21 | −0.75 |
+| title+body · MiniLM-L6 | 70.0% | 77.3% | **+7.24** | +5.88 | +0.25 |
+| title+body · **bge-m3** | 83.5% | 84.8% | +1.38 | **−1.41** | **−9.09** |
 
-vs PPR-only ablation on the same KG: **+29.8 pts** on HotpotQA at N=500
-(measured on v0.2.0) — the multi-component scoring is doing the work,
-not just "having a graph."
+Read both directions. With a small embedding the graph layer adds 5–7
+points of depth recall; with a strong one the depth gain shrinks to
++1.4 and the defaults **hurt the top ranks** (−9.1 at recall@2). The
+convergence term trades top-rank precision for depth: for top-2/top-5
+workloads on strong embeddings use `use_convergence=False` or plain
+cosine, and evaluate on your own workload before turning the graph
+layer on everywhere.
 
-On the full N=7405 HotpotQA dev: hubmesh hits **75.2% supporting-fact
-recall@10** vs naive cosine's **69.3%** (+4.21 pts at recall@5;
-recall@2 −0.75, disclosed above).
+**Full MuSiQue-Ans dev (2,417 questions, MiniLM, body only), hubmesh vs
+naive, recall@10 with paired 95% CIs:** **+3.67** [+3.00, +4.39] overall
+(+2.2 at @2, +3.3 at @5); by hop count +2.9 / +4.1 / **+5.3**
+(n = 1,252 / 760 / 405). The gain grows with hop count, and on MuSiQue
+hubmesh beats naive at recall@2 as well.
+
+**What the scoring adds (HotpotQA N=500, body only, recall@10):** on the
+*same* graph, seeds, fallback and packer, cosine-fused scoring reaches
+0.871 against 0.676 for the pure structural (PPR-only) signal —
+**+19.5 pts** [+16.3, +22.7] (MuSiQue N=300: +16.3). Earlier versions
+quoted +29.8 against a HippoRAG-style ranker; that comparison also
+changed the pipeline and is no longer cited as scoring attribution.
+
+**Convergence term (default on):** +0.9 pts @10 over convergence-off on
+full MuSiQue dev and +1.1 on HotpotQA N=500. A single-solve log-pooled
+signal in the same slot matches it in aggregate; the geomean keeps ~1 pt
+at three and four hops. Multi-seed queries cost ~1.5–2× (still zero LLM
+tokens, deterministic).
 
 Latency: **~22 ms** mean / 26 ms p95 per query on a 7K-node KG (after PPR
-matrix caching); ~3 s/query at the 66K-paragraph full-dev scale with
-v0.4 convergence on.
+matrix caching). ~3 s/query was measured at the 66K-paragraph full-dev
+scale with convergence on, before the per-query vector re-gather was
+removed; that scale has not been re-measured since.
 
-See [BENCHMARKS.md](BENCHMARKS.md) for the full methodology, ablations,
-per-hop breakdown, and notes on what this proves and doesn't.
-
-Reproduce:
+Reproduce (each run writes a JSON with per-query records and a manifest
+carrying the commit, dirty flag and source/harness content hashes):
 ```bash
-python benchmarks/run_hotpotqa.py --n 500 --kg
-python benchmarks/run_musique.py  --n 300 --kg
+python benchmarks/run_hotpotqa.py --n 500 --kg --out hotpot.json
+python benchmarks/run_musique.py  --n 300 --kg --out musique.json
+python benchmarks/run_ablation_coherence.py --dataset musique --n 2417
 python benchmarks/profile_query.py        # latency profile
 ```
 
 ## Status
 
-Pre-alpha (v0.4.0). Core algorithms implemented and validated; adapters for
+Pre-alpha (v0.4.1). Core algorithms implemented and validated; adapters for
 in-memory, Qdrant, and Chroma; entity-linked KG with both spaCy NER and
 LLM-based extraction (both linker-aware); alias-indexed entity resolution;
 NNSI-KG scoring (multi-source convergence default-on, hub-discounted PPR

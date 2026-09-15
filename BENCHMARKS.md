@@ -24,7 +24,96 @@ on multi-hop QA. Reproduce with the scripts in `benchmarks/`.
 
 ---
 
-## TL;DR
+## Current numbers (consolidated 2026-09; supersedes the tables below)
+
+Every row is a separate experiment: **document representation and
+embedding model change the absolute numbers materially**, so rows are
+never compared across representations. All rows: v0.4.0 scoring defaults
+(3:1:1, convergence on), full HotpotQA dev, 7,405 questions, 66,581
+pooled paragraphs, exact-id supporting-fact recall.
+
+| Representation · embedding | naive R@10 | hubmesh R@10 | Δ @10 | Δ @5 | Δ @2 | source |
+|---|---:|---:|---:|---:|---:|---|
+| body only · MiniLM-L6 (README headline) | 69.3% | 75.2% | **+5.90** | +4.21 | −0.75 | `experiments_hotpot_full_v040.log` |
+| title+body · MiniLM-L6 | 70.0% | 77.3% | **+7.24** | +5.88 | +0.25 | `benchmarks/lightrag_compare/results_titlebody_hotpotqa_full_all-MiniLM-L6-v2.json` |
+| title+body · **bge-m3** | 83.5% | 84.8% | +1.38 | **−1.41** | **−9.09** | `…_full_BAAI_bge-m3.json` |
+
+**Read both directions.** With a small embedding the graph layer adds
+5–7 points of depth recall. With a strong embedding (bge-m3) the
+depth gain shrinks to +1.4 and the default settings **hurt the top
+ranks substantially** (−9.1 @2, −1.4 @5): the convergence score trades
+top-rank precision for depth, and strong embeddings leave less depth to
+recover. Workload-specific evaluation is essential; for top-2/top-5
+workloads on strong embeddings use `use_convergence=False` or plain
+cosine. (Pilot-scale N=500 numbers and the learned-fusion analysis are
+in `research/RESEARCH.md`.)
+
+Ablation arms available in `benchmarks/run_hotpotqa.py` / `run_musique.py`
+(KG mode): `structural_only` — same graph, same seeds, same doc-node
+readout as hubmesh with cosine removed, isolating the scoring
+contribution; `hippo_style` — a *different pipeline* (entity-only
+subgraph, entity-mean readout, its own fallback), kept as an
+alternative-method comparison, not a scoring ablation. Runs write JSON
+with a reproducibility manifest (`--out`).
+
+**MuSiQue paragraph identity (audit, N=300 seed 0):** the published
+protocol keys paragraphs by title; 284 titles carry more than one
+distinct passage, 637 passages are collapsed, and **140 gold passages
+are hidden behind a shared title** (they are retrievable only as their
+title's first passage). All arms share the pool so comparisons are
+internally consistent, but MuSiQue numbers below are title-level, not
+exact-passage, recall. `run_musique.py --paragraph-identity title+text`
+gives exact ids (pool 3,936 → 4,573). **Re-measured (2026-09-10,
+`benchmarks/results/`, recall@10):** under `title`, naive 0.567 /
+hubmesh 0.616 (+4.9; per hop +5.6 / +3.2 / +6.1); under `title+text`,
+naive 0.571 / hubmesh 0.618 (+4.7; per hop +5.0 / +3.9 / +5.6) — the
+identity collision does not inflate the advantage.
+
+**Full MuSiQue-Ans dev (N=2,417, first full-dev measurement, 2026-09-14;
+MiniLM, body-only, title identity, pool 17,629 paragraphs, KG 88,394
+nodes / 590,347 edges).** Measured by the coherence-ablation harness
+(`benchmarks/run_ablation_coherence.py`, arm A = shipped defaults; it
+reproduces `run_musique.py`'s N=300 numbers to the third decimal), raw
+per-query records in `benchmarks/results/ablation_coherence_musique_n2417.json`,
+paired bootstrap 95% CIs:
+
+| recall | naive | hubmesh | Δ (pts) |
+|---|---:|---:|---|
+| @2 | 0.314 | 0.336 | **+2.22** [+1.40, +3.06] |
+| @5 | 0.411 | 0.444 | **+3.32** [+2.53, +4.12] |
+| @10 | 0.470 | 0.507 | **+3.67** [+3.00, +4.39] |
+| @10, 2-hop (n=1,252) | 0.549 | 0.578 | +2.88 [+1.92, +3.83] |
+| @10, 3-hop (n=760) | 0.450 | 0.491 | +4.12 [+2.83, +5.39] |
+| @10, 4-hop (n=405) | 0.264 | 0.317 | **+5.29** [+3.77, +6.85] |
+
+The N=300 per-hop figures (+6.0 / +3.2 / +5.0) were noisy; cite these.
+The gain is monotonic in hop count at full dev, and on MuSiQue hubmesh
+beats naive at recall@2 as well. Of the +3.67 @10, +2.81 [+2.26, +3.38]
+comes from cosine + pooled-PPR fusion (convergence off vs naive) and
++0.87 [+0.46, +1.27] from the convergence term — the 0.4.0 changelog's
+"+2.2 pts MuSiQue" for convergence was an N=300 estimate. A one-solve
+log-pooled signal in the coherence slot matches the geomean in
+aggregate (+0.03 @10 [−0.53, +0.60]); the geomean keeps ~1 pt at three
+and four hops (`docs/COUNCIL_AUDIT.md` §5).
+
+**Scoring attribution, cleanly (HotpotQA N=500, body-only, recall@10;
+re-measured 2026-09-14 with the structural arm run through the SAME
+packer, budget and near-duplicate filter as hubmesh —
+`benchmarks/results/*_b5.json`):** naive 0.819 · `structural_only` 0.676
+· hubmesh 0.871 · `hippo_style` 0.561. The fusion's gain over the *same
+graph's pure structural signal* is **+19.5 pts** [+16.3, +22.7] (paired
+bootstrap; MuSiQue N=300: +16.3 [+11.9, +20.7]) — the number to cite for
+"what the multi-component scoring adds". The structural arm returns
+nothing for a query with no seeds even after the top-3-cosine fallback;
+that count is 0/500 and 0/300 on these runs (24 and 44 queries used the
+fallback, all ending with ≥1 seed). The larger gaps quoted below against
+`hippo_style` (+29–31) include pipeline differences (entity-only
+subgraph, entity-mean readout, different fallback) and should not be
+read as scoring attribution.
+
+---
+
+## TL;DR (historical — v0.1.1 measurements, body-only, MiniLM)
 
 | Benchmark | Setting | Δ vs naive cosine (recall@10) | Δ vs PPR-only (recall@10) |
 |---|---|---:|---:|
@@ -37,14 +126,17 @@ on multi-hop QA. Reproduce with the scripts in `benchmarks/`.
 The multi-component scoring layer (cosine × structural-PPR, geometric-mean
 integration) consistently beats:
 - naive top-k by cosine similarity (the standard ANN baseline)
-- a HippoRAG-style PPR-only ranker over the *same* KG (the algorithmic ablation)
+- a HippoRAG-style PPR-only ranker over the *same* KG (an alternative
+  pipeline; see `structural_only` above for the clean scoring ablation)
 
 The win **grows with hop count** — exactly the pattern the multi-hop hypothesis
 predicted. At 4-hop, hubmesh gains the most over naive (+2.8 pts), confirming
 the graph-structural signal is doing real work where pure cosine cannot.
 
 Per-query latency in KG mode: **~22 ms** (mean) / 26 ms (p95) on a 7K-node KG
-after PPR matrix caching. Naive top-k is sub-millisecond.
+after PPR matrix caching (v0.1.1 formula, N=500 corpus). At full scale
+(66K paragraphs) with convergence on, expect ~3 s/query — see the
+consolidated table's sources. Naive top-k is sub-millisecond.
 
 ---
 

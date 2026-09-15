@@ -27,11 +27,15 @@ from hubmesh.adapters import InMemoryStore
 
 from hotpotqa_loader import load_hotpotqa, retrievable_gold
 from hippo_style import hippo_style_retrieve
+from structural_only import structural_only_retrieve
+from manifest import build_manifest
+import json
 
 
-def embed_texts(texts: list[str], batch_size: int = 64, model_name: str = "all-MiniLM-L6-v2") -> np.ndarray:
+def embed_texts(texts: list[str], batch_size: int = 64, model_name: str = "all-MiniLM-L6-v2",
+                device: str | None = None) -> np.ndarray:
     from sentence_transformers import SentenceTransformer
-    model = SentenceTransformer(model_name)
+    model = SentenceTransformer(model_name, device=device)
     return model.encode(
         texts, batch_size=batch_size, show_progress_bar=True,
         normalize_embeddings=True, convert_to_numpy=True,
@@ -73,6 +77,16 @@ def main():
     ap.add_argument("--no-hippo", action="store_true",
                     help="Skip the hippo_style ablation (saves ~50% time on "
                          "large N when you only care about hubmesh vs naive).")
+    ap.add_argument("--title-body", action="store_true",
+                    help="index '{title}\\n\\n{text}' (the LightRAG-comparison "
+                         "representation) instead of body-only")
+    ap.add_argument("--out", default=None,
+                    help="write results JSON (with reproducibility manifest "
+                         "and per-query recalls) to this path")
+    ap.add_argument("--embed-batch-size", type=int, default=64,
+                    help="sentence-transformers batch size (lower on small-RAM machines)")
+    ap.add_argument("--embed-device", default=None,
+                    help="torch device for embedding, e.g. cpu (default: auto)")
     args = ap.parse_args()
 
     print("=" * 84)
@@ -82,8 +96,10 @@ def main():
     print("[1/4] Loading HotpotQA distractor dev...")
     examples, pool = load_hotpotqa(n_questions=args.n, seed=args.seed)
     pool_titles = list(pool.keys())
-    pool_texts = [pool[t] for t in pool_titles]
-    print(f"      pooled corpus: {len(pool_titles)} unique paragraphs")
+    pool_texts = [f"{t}\n\n{pool[t]}" if args.title_body else pool[t]
+                  for t in pool_titles]
+    print(f"      pooled corpus: {len(pool_titles)} unique paragraphs "
+          f"({'title+body' if args.title_body else 'body-only'})")
     n_with_gold = sum(1 for ex in examples
                       if retrievable_gold(ex, set(pool_titles)))
     print(f"      questions with at least one retrievable gold: "
@@ -91,15 +107,16 @@ def main():
 
     print(f"[2/4] Embedding corpus + queries with {args.model}...")
     t0 = time.perf_counter()
-    para_vecs = embed_texts(pool_texts, model_name=args.model)
-    query_vecs = embed_texts([ex.question for ex in examples],
-                             model_name=args.model)
+    para_vecs = embed_texts(pool_texts, batch_size=args.embed_batch_size, model_name=args.model,
+                             device=args.embed_device)
+    query_vecs = embed_texts([ex.question for ex in examples], batch_size=args.embed_batch_size,
+                             model_name=args.model, device=args.embed_device)
     print(f"      embedded {len(pool_texts)} paragraphs + {len(examples)} "
           f"questions in {time.perf_counter()-t0:.1f}s")
 
     print("[3/4] Building InMemoryStore + Planner...")
     docs = [
-        Document(id=t, text=pool[t], vector=para_vecs[i],
+        Document(id=t, text=pool_texts[i], vector=para_vecs[i],
                  metadata={"title": t})
         for i, t in enumerate(pool_titles)
     ]
@@ -131,11 +148,17 @@ def main():
     ks = [2, 5, 10]
     has_kg = kg is not None
     strategies = ["naive_topk", "hubmesh"]
+    if has_kg:
+        # same graph, same seeds, same doc-node readout as hubmesh —
+        # cosine removed; the clean scoring-attribution ablation
+        strategies.append("structural_only")
     if has_kg and not args.no_hippo:
         strategies.append("hippo_style")
     print(f"      strategies: {strategies}")
     results = {s: {k: [] for k in ks} for s in strategies}
     timings = {s: 0.0 for s in strategies}
+    per_query: list[dict] = []
+    struct_stats: dict = {}      # seed counts / fallback / seedless per query
 
     nlp_for_query = planner._nlp if has_kg else None
 
@@ -153,9 +176,32 @@ def main():
         hub = hubmesh_retrieve(planner, ex.question, qvec, max(ks))
         timings["hubmesh"] += time.perf_counter() - t0
 
+        rec = {"qid": ex.qid}
         for k in ks:
             results["naive_topk"][k].append(recall_at_k(naive, gold, k))
             results["hubmesh"][k].append(recall_at_k(hub, gold, k))
+            rec[f"naive_topk@{k}"] = recall_at_k(naive, gold, k)
+            rec[f"hubmesh@{k}"] = recall_at_k(hub, gold, k)
+
+        if has_kg:
+            if nlp_for_query is None:
+                import spacy
+                nlp_for_query = spacy.load("en_core_web_sm")
+                planner._nlp = nlp_for_query
+            t0 = time.perf_counter()
+            struct = structural_only_retrieve(
+                kg, planner._ppr_solver, nlp_for_query, ex.question, qvec,
+                store, max(ks), alpha=planner.config.ppr_alpha,
+                budget_tokens=10_000,                       # same as hubmesh_retrieve
+                redundancy_lambda=planner.config.redundancy_lambda,
+                stats=struct_stats)
+            timings["structural_only"] += time.perf_counter() - t0
+            rec["structural_only_seeds"] = struct_stats["n_seeds"][-1]
+            for k in ks:
+                r = recall_at_k(struct, gold, k)
+                results["structural_only"][k].append(r)
+                rec[f"structural_only@{k}"] = r
+        per_query.append(rec)
 
         if has_kg and "hippo_style" in strategies:
             # Lazy-load nlp here in case planner hadn't yet
@@ -169,7 +215,9 @@ def main():
             )
             timings["hippo_style"] += time.perf_counter() - t0
             for k in ks:
-                results["hippo_style"][k].append(recall_at_k(hippo, gold, k))
+                r = recall_at_k(hippo, gold, k)
+                results["hippo_style"][k].append(r)
+                per_query[-1][f"hippo_style@{k}"] = r
 
     print()
     print("=" * 84)
@@ -196,6 +244,30 @@ def main():
                  np.mean(results[baseline][k])) * 100
             print(f"  recall@{k:<2} hubmesh − {baseline:<14} = {d:+.2f} pts")
         print()
+
+    if args.out:
+        from dataclasses import asdict
+        out = {
+            "manifest": build_manifest(
+                harness=__file__,
+                embed_device=args.embed_device or "auto",
+                embed_batch_size=args.embed_batch_size,
+                dataset="hotpotqa", split="validation(distractor)",
+                n_questions=args.n, seed=args.seed,
+                n_pooled_paragraphs=len(pool_titles),
+                representation="title+body" if args.title_body else "body",
+                embed_model=args.model, kg_mode=has_kg,
+                planner_config=asdict(planner.config),
+                strategies=strategies),
+            "summary": {s: {f"recall@{k}": round(float(np.mean(results[s][k])), 4)
+                            for k in ks} for s in strategies},
+            "structural_only_stats": {k: v for k, v in struct_stats.items()
+                                      if k != "n_seeds"},
+            "total_time_s": {s: round(timings[s], 1) for s in strategies},
+            "per_query": per_query,
+        }
+        Path(args.out).write_text(json.dumps(out, indent=1))
+        print(f"wrote {args.out}")
 
 
 if __name__ == "__main__":

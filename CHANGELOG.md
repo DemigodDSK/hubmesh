@@ -4,6 +4,100 @@ All notable changes to **hubmesh** are documented here. The format is loosely
 based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the
 project follows [SemVer](https://semver.org/) starting from 0.1.0.
 
+## [Unreleased]
+
+Fixes from an external code review (2026-09), grouped as reviewed.
+
+### Batch 1 — correctness & persistence (committed `715e295`)
+- Corpus names are validated identifiers; traversal outside the root is
+  rejected on build and load.
+- Persistence is generation-based: immutable `gen-*` dirs behind an
+  atomically replaced `CURRENT` pointer, flock-serialized writers,
+  reader grace measured from retirement (`retention_seconds`, default
+  900 s), legacy flat files never deleted.
+- `meta.json` records the embedding identity and dimension; loads reject
+  mismatches and inconsistent archives, warn on unverifiable ones.
+- Packed context and returned sources agree exactly (`pack(max_docs=)`).
+- Chunker output embeds directly via `from_documents(embed=)`; invalid
+  chunk arguments and unknown strategies raise.
+
+### Batch 2 — MCP service security
+- Serving beyond loopback (non-loopback bind or `--allow-tunnel`)
+  requires `--api-key` / `HUBMESH_API_KEY`; tunnels default to read-only
+  (`--allow-writes` to opt out); bearer auth enforced by ASGI middleware.
+
+### Batch 3 — evaluation credibility
+- Benchmark runs write JSON with a reproducibility manifest (commit,
+  versions, models, representation, per-query recalls); a same-graph
+  structural-only arm isolates the scoring contribution; LightRAG scoring
+  is failure-aware; MuSiQue paragraph-identity collisions are audited.
+
+### Batch 4 — determinism, caching, performance, maintenance
+- Cross-process determinism: sorted iteration and explicit doc-id
+  tie-breaks in scoring, packing, and seeding.
+- PPR: dangling mass redistributed to the teleport vector, duplicate
+  seeds deduplicated, parameters validated.
+- Planner caches per (corpus, config); adapters invalidate neighbor
+  caches on writes and expose `mutation_counter`; neighbor requests
+  larger than a cached list recompute.
+- KG-mode relevance matrix cached per store version; document bodies
+  fetched only for packable candidates.
+- Token budget counts the serialized context; `PlannerConfig.token_counter`
+  accepts a tokenizer-backed callable.
+- `VectorStore` protocol declares `vector_of`.
+- LLM-KG extraction: failures counted and reported (`kg.extraction_stats`),
+  cache namespaced by model identity + prompt, `max_workers` honored.
+- CI runs the MCP tests; publishing verifies the tag matches the package
+  version and runs the suite first.
+
+### Batch 5 — second external review (2026-09-14), current tree
+- **Security guidance (P1):** the tunnel recipe no longer suggests
+  injecting the bearer token at an unauthenticated edge. The edge must
+  authenticate callers first; header-less connectors that cannot sit
+  behind such an edge are unsupported for private corpora. Tunnel mode
+  prints this caveat at startup (`SecurityPolicy.notice`).
+- **Corpus cache freshness:** `CorpusManager.planner()` keys its cache
+  by generation and re-reads `CURRENT` on every call, so a rebuild by
+  this manager or another process is picked up on the next call and a
+  load that raced with a publish is never installed over the newer
+  generation (same-manager repopulation race closed).
+- **Adapters:** Chroma/Qdrant upserts invalidate derived caches and bump
+  `mutation_counter` before the first batch and again after the last or
+  on failure; Qdrant caches vectors only after the backend confirms the
+  batch; a failed batch's ids are evicted from the local vector cache.
+- **Packing:** the budget check measures the complete serialized context
+  a candidate would produce, so `count_tokens(context) <= budget_tokens`
+  holds under any counter, additive or not.
+- **Determinism:** capped kNN expansion visits the frontier in id order
+  (candidate membership at the cap no longer depends on hash seeds);
+  `SubstringLinker` breaks equal-length ties lexically.
+- **PPR:** a self-loop is one matrix entry, not two (was doubled;
+  networkx parity restored).
+- **LLM KG:** a malformed reply is `unparseable` and NOT cached (retried
+  next build); a parsed empty triple list is a valid, cached result.
+  `unparseable` no longer counts legitimately empty extractions.
+- **Benchmarks:** `structural_only` runs through the same packer, budget
+  and near-duplicate filter as hubmesh; seedless queries get the
+  neutral structural score and the same post-selection instead of an
+  empty result, and are counted (zero on the recorded runs); re-measured
+  scoring attribution
+  HotpotQA N=500 **+19.5** pts recall@10 [+16.3, +22.7], MuSiQue N=300
+  +16.3 (README's "+29.8 vs PPR-only" retired); the LightRAG scorer scores each pass
+  against its intended roster (missing queries count against
+  completion and strict recall; `run_queries.py` records the cold
+  roster); manifests carry whole-tree dirtiness plus content hashes of
+  `src/hubmesh`, of every `benchmarks/**/*.py` helper, and of the
+  harness, and record the embedding device and batch size.
+- **Convergence claim bounded (docs only, no scoring change):** on full
+  MuSiQue dev (N=2,417) the convergence term adds +0.9 pts recall@10
+  over convergence-off, not the +2.2 the 0.4.0 entry quotes from N=300;
+  a single-solve log-pooled signal in the same slot matches it in
+  aggregate, and the geomean keeps ~1 pt at three and four hops. First
+  full-MuSiQue-dev numbers vs naive: +2.2 / +3.3 / +3.7 at @2/@5/@10,
+  per hop @10 +2.9 / +4.1 / +5.3 (BENCHMARKS.md).
+- Tests: `tests/test_review_sep14.py` (reviewer reproductions + boundary
+  cases) and two more subprocess determinism cases.
+
 ## [0.4.1] — 2026-08-02
 
 ### Docs

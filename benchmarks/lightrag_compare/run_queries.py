@@ -82,6 +82,11 @@ def main():
     if args.cold_sample and args.passes > 1:
         sample = questions[:args.cold_sample]
         cold_path = HERE / f"raw_lightrag_{args.scope}_cold.jsonl"
+        # Record the INTENDED cold roster so score_eval can count queries
+        # that were never written (interrupted run) as missing rather
+        # than silently dropping them from the denominator.
+        (HERE / f"roster_{args.scope}_cold.json").write_text(
+            json.dumps([q["qid"] for q in sample]))
         print(f"Cold-variance sample: {len(sample)} questions x "
               f"{args.passes - 1} extra passes -> {cold_path}")
         for p in range(2, args.passes + 1):
