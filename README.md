@@ -306,7 +306,7 @@ python benchmarks/profile_query.py        # latency profile
 
 ## Status
 
-Pre-alpha (v0.4.1). Core algorithms implemented and validated; adapters for
+Pre-alpha (v0.4.2). Core algorithms implemented and validated; adapters for
 in-memory, Qdrant, and Chroma; entity-linked KG with both spaCy NER and
 LLM-based extraction (both linker-aware); alias-indexed entity resolution;
 NNSI-KG scoring (multi-source convergence default-on, hub-discounted PPR

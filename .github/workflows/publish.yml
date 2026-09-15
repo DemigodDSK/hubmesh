@@ -39,9 +39,10 @@ jobs:
           TAG="${GITHUB_REF_NAME#v}"
           PKG="$(python -c 'import tomllib; print(tomllib.load(open("pyproject.toml","rb"))["project"]["version"])')"
           INIT="$(python -c 'import re; print(re.search(r"__version__ = \"([^\"]+)\"", open("src/hubmesh/__init__.py").read()).group(1))')"
-          echo "tag=$TAG pyproject=$PKG __init__=$INIT"
-          if [ "$TAG" != "$PKG" ] || [ "$TAG" != "$INIT" ]; then
-            echo "::error::version mismatch between tag, pyproject.toml and __init__.py"
+          SRV="$(python -c 'import json; print(json.load(open("server.json"))["version"])')"
+          echo "tag=$TAG pyproject=$PKG __init__=$INIT server.json=$SRV"
+          if [ "$TAG" != "$PKG" ] || [ "$TAG" != "$INIT" ] || [ "$TAG" != "$SRV" ]; then
+            echo "::error::version mismatch between tag, pyproject.toml, __init__.py and server.json"
             exit 1
           fi
 
@@ -60,6 +61,38 @@ jobs:
           python -m build
           python -m twine check dist/*
           ls -la dist/
+
+      - name: Smoke-test the built wheel in a fresh environment
+        # The artefact about to be uploaded — not the editable checkout —
+        # must install with the mcp extra, import, and start in a clean
+        # venv. 0.4.1's unpinned `mcp` resolved to SDK 2.x and failed at
+        # import; nothing before upload would have caught it.
+        run: |
+          python -m venv /tmp/wheeltest
+          /tmp/wheeltest/bin/pip install --quiet --upgrade pip
+          WHEEL="$(ls dist/hubmesh-*.whl)"
+          /tmp/wheeltest/bin/pip install --quiet "${WHEEL}[mcp]"
+          /tmp/wheeltest/bin/pip check
+          /tmp/wheeltest/bin/python -c "import hubmesh, hubmesh.mcp_server as m, importlib.metadata as md; v = md.version('mcp'); print('hubmesh', hubmesh.__version__, 'mcp', v); assert v.startswith('1.'), v; assert m.resolve_security('sse', '127.0.0.1', True, 'k', False, False).read_only"
+          /tmp/wheeltest/bin/hubmesh-mcp --help > /dev/null
+          # exposed serving without a key must refuse to start
+          if /tmp/wheeltest/bin/hubmesh-mcp --transport sse --allow-tunnel --port 8765 > /tmp/refuse.log 2>&1; then
+            echo "::error::server started behind --allow-tunnel without an API key"
+            exit 1
+          fi
+          grep -q "refusing to serve" /tmp/refuse.log
+          # loopback SSE startup with a key: the endpoint must answer 401 without the bearer
+          HUBMESH_API_KEY=smoke /tmp/wheeltest/bin/hubmesh-mcp --transport sse --port 8765 > /tmp/sse.log 2>&1 &
+          SERVER=$!
+          code=""
+          for i in $(seq 1 45); do
+            code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 2 http://127.0.0.1:8765/sse || true)"
+            [ "$code" = "401" ] && break
+            sleep 1
+          done
+          kill "$SERVER" || true
+          echo "GET /sse without bearer -> HTTP ${code}"
+          [ "$code" = "401" ] || { cat /tmp/sse.log; exit 1; }
 
       - name: Upload to PyPI
         if: ${{ env.PYPI_API_TOKEN != '' }}

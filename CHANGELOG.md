@@ -6,7 +6,37 @@ project follows [SemVer](https://semver.org/) starting from 0.1.0.
 
 ## [Unreleased]
 
-Fixes from an external code review (2026-09), grouped as reviewed.
+## [0.4.2] — 2026-09-15
+
+Maintenance release carrying every fix from the September 2026 external
+code reviews (batches 1–5 below) plus a packaging pin. **Two behaviour
+changes for `hubmesh-mcp` operators — read before upgrading:**
+
+- **Authentication is required for any serving beyond localhost.** A
+  non-loopback `--host` or `--allow-tunnel` now refuses to start without
+  `--api-key` / `HUBMESH_API_KEY`, and clients must send
+  `Authorization: Bearer <key>` (401 otherwise). The stdio transport and
+  a plain loopback bind are unchanged; a key given on loopback is
+  enforced. Existing tunnel setups (`docs/perplexity.md`) need the key
+  exported and the connector configured with the bearer token.
+- **Tunnels are read-only by default.** With `--allow-tunnel` the
+  `index_corpus` tool refuses unless `--allow-writes` is passed; index
+  locally over stdio instead. If a connector cannot send headers, the
+  tunnel edge must authenticate callers itself before adding the header
+  — injecting it for anonymous traffic exposes every corpus. Tunnel mode
+  prints this caveat at startup.
+- **`mcp` SDK pinned below 2.0.** `hubmesh[mcp]` now resolves `mcp<2`;
+  SDK 2.x removed the module the server imports, so fresh installs of
+  0.4.1 failed at import. Migration to the 2.x API is separate work.
+
+Also in this release: generation-based atomic corpus persistence with
+writer locking and embedding fingerprints; generation-keyed planner-cache
+freshness; adapter write invalidation; exact token budgeting;
+cross-process determinism fixes; PPR dangling-mass and self-loop fixes;
+LLM-KG cache policy; benchmark manifests with content hashes; and the
+corrected README numbers (embedder grid with the bge-m3 row, +19.5-pt
+scoring attribution, first full-MuSiQue-dev results). No scoring
+defaults changed. Details per batch:
 
 ### Batch 1 — correctness & persistence (committed `715e295`)
 - Corpus names are validated identifiers; traversal outside the root is
