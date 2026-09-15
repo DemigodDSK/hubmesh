@@ -74,10 +74,10 @@ BUDGET = 10_000
 ALPHA = 0.15
 
 
-def embed_texts(texts, model_name="all-MiniLM-L6-v2"):
+def embed_texts(texts, model_name="all-MiniLM-L6-v2", batch_size=64, device=None):
     from sentence_transformers import SentenceTransformer
-    model = SentenceTransformer(model_name)
-    return model.encode(texts, batch_size=64, show_progress_bar=True,
+    model = SentenceTransformer(model_name, device=device)
+    return model.encode(texts, batch_size=batch_size, show_progress_bar=True,
                         normalize_embeddings=True,
                         convert_to_numpy=True).astype(np.float32)
 
@@ -115,6 +115,10 @@ def main():
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--boot", type=int, default=10_000)
     ap.add_argument("--out", default=None)
+    ap.add_argument("--embed-batch-size", type=int, default=64,
+                    help="sentence-transformers batch size (lower on small-RAM machines)")
+    ap.add_argument("--embed-device", default=None,
+                    help="torch device for embedding, e.g. cpu (default: auto)")
     args = ap.parse_args()
 
     print(f"[1/3] Loading {args.dataset} n={args.n} seed={args.seed}...")
@@ -131,8 +135,10 @@ def main():
     print(f"      {len(pool_titles)} paragraphs, {len(examples)} questions")
 
     print("[2/3] Embedding + KG (shared across all arms)...")
-    para_vecs = embed_texts([pool[t] for t in pool_titles])
-    query_vecs = embed_texts([ex.question for ex in examples])
+    para_vecs = embed_texts([pool[t] for t in pool_titles],
+                            batch_size=args.embed_batch_size, device=args.embed_device)
+    query_vecs = embed_texts([ex.question for ex in examples],
+                             batch_size=args.embed_batch_size, device=args.embed_device)
     docs = [Document(id=t, text=pool[t], vector=para_vecs[i],
                      metadata={"title": t})
             for i, t in enumerate(pool_titles)]
@@ -283,7 +289,8 @@ def main():
         "manifest": build_manifest(harness=__file__,
                                    dataset=args.dataset, n=args.n,
                                    seed=args.seed, embed_model="all-MiniLM-L6-v2",
-                                   embed_device="auto", embed_batch_size=64,
+                                   embed_device=args.embed_device or "auto",
+                                   embed_batch_size=args.embed_batch_size,
                                    alpha=ALPHA, weights="3:1:1 sum",
                                    top_k=TOP_K, budget_tokens=BUDGET, eps=EPS),
         "arms": ARM_DESC,
