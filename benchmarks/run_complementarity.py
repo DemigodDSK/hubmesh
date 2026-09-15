@@ -143,6 +143,37 @@ def compose_latency(stage_times: list[dict], stages: tuple[str, ...]) -> dict:
             "p95_ms": round(float(np.percentile(sums, 95)) * 1000, 2)}
 
 
+def _mps_empty_cache() -> None:
+    """Release PyTorch's cached Metal blocks. The caching allocator keeps
+    freed blocks across variable-length batches; on an 8 GB machine that
+    grew past the allocation ceiling (Amendment 1) even though the fp16
+    model itself needs ~1.1 GB."""
+    try:
+        import torch
+        if torch.backends.mps.is_available():
+            torch.mps.empty_cache()
+    except Exception:
+        pass
+
+
+def encode_chunked(model, texts: list[str], batch_size: int, chunk: int = 512) -> np.ndarray:
+    """Length-sorted, chunked encoding with a cache release after every
+    chunk: bounded accelerator memory, same embeddings, original order."""
+    order = sorted(range(len(texts)), key=lambda i: -len(texts[i]))
+    out = None
+    for s in range(0, len(order), chunk):
+        idx = order[s:s + chunk]
+        embs = model.encode([texts[i] for i in idx], batch_size=batch_size,
+                            show_progress_bar=False, normalize_embeddings=True,
+                            convert_to_numpy=True).astype(np.float32)
+        if out is None:
+            out = np.zeros((len(texts), embs.shape[1]), dtype=np.float32)
+        out[idx] = embs
+        _mps_empty_cache()
+        print(f"      embedded {min(s + chunk, len(order))}/{len(order)}", flush=True)
+    return out if out is not None else np.zeros((0, 0), dtype=np.float32)
+
+
 def protocol_sha256(path: Path = HERE / "PROTOCOL_complementarity.md") -> str | None:
     try:
         return hashlib.sha256(path.read_bytes()).hexdigest()
@@ -207,9 +238,7 @@ def stage_retrieve(args, examples, ids, texts, gold_of):
     if args.embed_dtype == "fp16":
         model.half()            # no-op for the transformer; covers pooling/dense modules
     t0 = time.perf_counter()
-    para_vecs = model.encode([texts[i] for i in ids], batch_size=args.embed_batch_size,
-                             show_progress_bar=True, normalize_embeddings=True,
-                             convert_to_numpy=True).astype(np.float32)
+    para_vecs = encode_chunked(model, [texts[i] for i in ids], args.embed_batch_size)
     embed_pool_s = time.perf_counter() - t0
 
     docs = [Document(id=i, text=texts[i], vector=para_vecs[j]) for j, i in enumerate(ids)]
@@ -223,13 +252,16 @@ def stage_retrieve(args, examples, ids, texts, gold_of):
     id_arr = np.array(ids)
 
     records = []
-    for ex in examples:
+    for qi, ex in enumerate(examples):
         gold = gold_of[ex.qid]
         st: dict[str, float] = {}
         t0 = time.perf_counter()
         qvec = model.encode([ex.question], normalize_embeddings=True,
                             convert_to_numpy=True)[0].astype(np.float32)
         st["embed"] = time.perf_counter() - t0
+        if qi % 50 == 0:
+            _mps_empty_cache()
+            print(f"      query {qi}/{len(examples)}", flush=True)
         t0 = time.perf_counter()
         dense = [d for d, _ in store.search(qvec, top_k=TOPN_FUSE)]
         st["dense"] = time.perf_counter() - t0
@@ -297,8 +329,11 @@ def stage_rerank(args, stage, texts, questions):
                           automodel_args=ce_kwargs.get("model_kwargs"))
     if args.rerank_dtype == "fp16":
         ce.model.half()
-    for rec in stage["records"]:
+    for qi, rec in enumerate(stage["records"]):
         q = questions[rec["qid"]]
+        if qi % 25 == 0:
+            _mps_empty_cache()
+            print(f"      rerank {qi}/{len(stage['records'])}", flush=True)
         # score the union of the reranked arms' candidates once (a pair's
         # score does not depend on which list it came from) ...
         union = list(dict.fromkeys(d for a in RERANKED for d in rec["cand"][a]))
