@@ -167,9 +167,22 @@ For web-based connector clients, serve SSE natively — no gateway
 process needed:
 
 ```bash
+export HUBMESH_API_KEY="$(openssl rand -hex 24)"   # any strong secret
 hubmesh-mcp --transport sse --port 8000 --allow-tunnel
 ngrok http 8000     # paste https://<your-url>/sse into the connector
 ```
+
+Tunneled serving **requires** the API key (the server refuses to start
+without one) and defaults to **read-only** — pass `--allow-writes` to
+keep `index_corpus` enabled. Clients must send
+`Authorization: Bearer <key>`. If your connector client cannot set
+headers, the tunnel edge must **authenticate callers itself** (ngrok
+OAuth / IP-restriction traffic policy, Cloudflare Access, …) *before*
+it adds the upstream header — injecting the header for anonymous
+traffic hands every caller full read access (read-only protects corpora
+from replacement, not from disclosure; `get_document` returns full
+text). A client that can neither send the header nor sit behind an
+authenticating edge is unsupported for private corpora.
 
 Tunnel field notes (from a live Perplexity integration): **ngrok works**
 (free tier included); **cloudflared quick tunnels buffer SSE bodies**

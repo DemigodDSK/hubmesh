@@ -16,9 +16,14 @@ were actually answered from chat context, and are marked as such).
 pip install "hubmesh[mcp]"
 python -m spacy download en_core_web_sm
 
+export HUBMESH_API_KEY="$(openssl rand -hex 24)"   # required for tunnels
 hubmesh-mcp --transport sse --port 8000 --allow-tunnel
 ngrok http 8000        # free tier is fine; note the https URL
 ```
+
+Tunneled serving requires the key and defaults to read-only (pass
+`--allow-writes` to expose `index_corpus`; index locally over stdio
+instead when you can).
 
 Perplexity → Settings → Connectors → Add:
 
@@ -26,9 +31,20 @@ Perplexity → Settings → Connectors → Add:
 |---|---|
 | Name | `hubmesh` |
 | MCP server URL | `https://<your-ngrok-url>/sse` |
-| Authentication | None |
+| Authentication | Bearer token = your `HUBMESH_API_KEY` |
 | Transport | SSE |
 | Network access | Public |
+
+If the connector UI offers no header/token field, the tunnel edge must
+**authenticate callers itself** (ngrok OAuth / IP-restriction traffic
+policy, Cloudflare Access, …) *before* it adds
+`Authorization: Bearer <key>` toward hubmesh. Injecting the header for
+anonymous traffic hands every caller full read access — read-only
+protects corpora from replacement, not from disclosure (`get_document`
+returns full text). A connector that can neither send the header nor
+sit behind an authenticating edge is **unsupported for private
+corpora**. The server will not start un-keyed behind a tunnel either
+way.
 
 Then start a **new chat** (hard-reload the tab if the connector isn't
 picked up) and index something:

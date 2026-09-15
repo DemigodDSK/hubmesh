@@ -18,7 +18,10 @@ overrides). Responses are token-lean: `retrieve` returns snippets +
 ids; fetch full text with `get_document`.
 """
 from __future__ import annotations
+import hmac
+import json
 import os
+from dataclasses import dataclass
 
 from mcp.server.fastmcp import FastMCP
 
@@ -56,6 +59,9 @@ def list_corpora() -> dict:
     return _mgr().list()
 
 
+_read_only = False   # set by main(); write tools refuse when True
+
+
 @mcp.tool()
 def index_corpus(name: str, documents: list[dict]) -> dict:
     """Index documents into a named corpus: embeds them, builds the
@@ -63,6 +69,10 @@ def index_corpus(name: str, documents: list[dict]) -> dict:
     disk. `documents` is a list of {"id": str, "text": str}. Re-using
     an existing name replaces that corpus. Indexing cost is paid once —
     queries afterwards are ~milliseconds."""
+    if _read_only:
+        return {"error": "this server is read-only: indexing is disabled "
+                         "(started with --read-only, or serving through a "
+                         "tunnel without --allow-writes)"}
     return _mgr().build(name, documents)
 
 
@@ -231,6 +241,87 @@ def _load(corpus: str):
     return planner.store, planner.kg
 
 
+# ---- network security ------------------------------------------------
+
+_LOOPBACK_HOSTS = {"127.0.0.1", "localhost", "::1"}
+
+
+TUNNEL_AUTH_NOTICE = (
+    "tunnel mode: every caller must present the bearer token. If your "
+    "connector cannot send headers and you inject the token at the tunnel "
+    "edge, the edge MUST authenticate callers first — injecting it for "
+    "anonymous traffic makes every corpus publicly readable (read-only "
+    "prevents replacement, not disclosure; get_document returns full text)."
+)
+
+
+@dataclass
+class SecurityPolicy:
+    api_key: str | None
+    read_only: bool
+    notice: str | None = None    # operator-facing caveat, printed at startup
+
+
+def resolve_security(transport: str, host: str, allow_tunnel: bool,
+                     api_key: str | None, read_only: bool,
+                     allow_writes: bool) -> SecurityPolicy:
+    """Decide the serving security posture, refusing insecure setups.
+
+    Rules (external review, batch 2): any network exposure beyond
+    loopback — a non-loopback bind or a tunnel — REQUIRES an API key;
+    tunnel mode additionally defaults to read-only unless --allow-writes
+    is explicit. stdio has a local process trust boundary and takes no
+    key. A key supplied on loopback is still enforced (belt on localhost
+    is allowed, just not demanded)."""
+    if transport == "stdio":
+        return SecurityPolicy(api_key=None, read_only=read_only)
+    exposed = allow_tunnel or host not in _LOOPBACK_HOSTS
+    if exposed and not api_key:
+        raise SystemExit(
+            "refusing to serve: this configuration exposes read/write "
+            "corpus tools beyond localhost without authentication. Set "
+            "--api-key or HUBMESH_API_KEY (any strong secret), or bind "
+            "to 127.0.0.1 without --allow-tunnel.")
+    ro = read_only or (allow_tunnel and not allow_writes)
+    return SecurityPolicy(api_key=api_key, read_only=ro,
+                          notice=TUNNEL_AUTH_NOTICE if allow_tunnel else None)
+
+
+class BearerAuthASGI:
+    """Minimal ASGI middleware: every HTTP request must carry
+    `Authorization: Bearer <key>` (constant-time comparison). Non-HTTP
+    scopes (lifespan) pass through untouched."""
+
+    def __init__(self, app, api_key: str):
+        self.app = app
+        self._expect = f"Bearer {api_key}".encode()
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            return await self.app(scope, receive, send)
+        auth = b""
+        for k, v in scope.get("headers", []):
+            if k.lower() == b"authorization":
+                auth = v
+                break
+        if not hmac.compare_digest(auth, self._expect):
+            body = json.dumps({"error": "unauthorized: missing or invalid "
+                                        "Authorization bearer token"}).encode()
+            await send({"type": "http.response.start", "status": 401,
+                        "headers": [(b"content-type", b"application/json"),
+                                    (b"www-authenticate", b"Bearer")]})
+            await send({"type": "http.response.body", "body": body})
+            return
+        return await self.app(scope, receive, send)
+
+
+def build_sse_app(api_key: str | None):
+    """The SSE ASGI app, auth-wrapped when a key is configured —
+    factored out of main() so the transport can be tested for real."""
+    app = mcp.sse_app()
+    return BearerAuthASGI(app, api_key) if api_key else app
+
+
 def main():
     import argparse
     import threading
@@ -238,7 +329,8 @@ def main():
         prog="hubmesh-mcp",
         description="hubmesh MCP operator server. stdio by default; "
                     "--transport sse serves HTTP+SSE natively (no "
-                    "gateway process needed).")
+                    "gateway process needed). Serving beyond localhost "
+                    "requires --api-key / HUBMESH_API_KEY.")
     ap.add_argument("--transport", choices=["stdio", "sse"],
                     default="stdio")
     ap.add_argument("--host", default="127.0.0.1")
@@ -247,22 +339,50 @@ def main():
                     help="accept forwarded Host headers (disables "
                          "DNS-rebinding protection) — required behind "
                          "ngrok-style tunnels, which otherwise get 421 "
-                         "Misdirected Request")
+                         "Misdirected Request. Requires an API key and "
+                         "implies --read-only unless --allow-writes.")
+    ap.add_argument("--api-key", default=os.environ.get("HUBMESH_API_KEY"),
+                    help="bearer token clients must send (env: "
+                         "HUBMESH_API_KEY). Mandatory for non-loopback "
+                         "binds and tunnels; optional but enforced on "
+                         "loopback.")
+    ap.add_argument("--read-only", action="store_true",
+                    help="disable indexing/replacement tools")
+    ap.add_argument("--allow-writes", action="store_true",
+                    help="keep write tools enabled behind a tunnel "
+                         "(default there is read-only)")
     args = ap.parse_args()
 
-    if args.transport == "sse":
-        mcp.settings.host = args.host
-        mcp.settings.port = args.port
-    if args.allow_tunnel:
-        from mcp.server.transport_security import TransportSecuritySettings
-        mcp.settings.transport_security = TransportSecuritySettings(
-            enable_dns_rebinding_protection=False)
+    policy = resolve_security(args.transport, args.host, args.allow_tunnel,
+                              args.api_key, args.read_only,
+                              args.allow_writes)
+    global _read_only
+    _read_only = policy.read_only
+    if policy.notice:
+        import sys
+        print(f"hubmesh-mcp: {policy.notice}", file=sys.stderr)
 
     # Warm up off the serving thread: the first tool call must not pay
     # the ~5-10s model cold start — connector clients (e.g. Perplexity)
     # drop SSE tool calls in exactly that window.
     threading.Thread(target=lambda: _mgr().warmup(), daemon=True).start()
-    mcp.run(transport=args.transport)
+
+    if args.transport == "stdio":
+        mcp.run(transport="stdio")
+        return
+
+    mcp.settings.host = args.host
+    mcp.settings.port = args.port
+    if args.allow_tunnel:
+        # Rebinding protection rejects forwarded Host headers with 421;
+        # behind a tunnel the bearer auth (mandatory here) is the defense.
+        from mcp.server.transport_security import TransportSecuritySettings
+        mcp.settings.transport_security = TransportSecuritySettings(
+            enable_dns_rebinding_protection=False)
+
+    import uvicorn
+    uvicorn.run(build_sse_app(policy.api_key),
+                host=args.host, port=args.port)
 
 
 if __name__ == "__main__":
