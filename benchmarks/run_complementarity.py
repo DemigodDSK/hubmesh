@@ -194,11 +194,18 @@ def stage_retrieve(args, examples, ids, texts, gold_of):
     from hubmesh.kg import build_entity_kg
     import spacy
 
-    model = SentenceTransformer(args.embed_model, device=args.embed_device)
+    load_kwargs = {}
+    if args.embed_dtype == "fp16":
+        import torch
+        # Amendment 1: load the weights AS fp16 — converting after an fp32
+        # load leaves a 2 GB fp32 copy on the accelerator and trips the
+        # Metal memory ceiling before embedding starts.
+        load_kwargs["model_kwargs"] = {"torch_dtype": torch.float16}
+    model = SentenceTransformer(args.embed_model, device=args.embed_device, **load_kwargs)
     if args.embed_max_seq_len:
         model.max_seq_length = args.embed_max_seq_len
     if args.embed_dtype == "fp16":
-        model.half()            # Amendment 1: fp16 on Metal (8 GB machine)
+        model.half()            # no-op for the transformer; covers pooling/dense modules
     t0 = time.perf_counter()
     para_vecs = model.encode([texts[i] for i in ids], batch_size=args.embed_batch_size,
                              show_progress_bar=True, normalize_embeddings=True,
@@ -279,9 +286,17 @@ def stage_retrieve(args, examples, ids, texts, gold_of):
 
 def stage_rerank(args, stage, texts, questions):
     from sentence_transformers import CrossEncoder
-    ce = CrossEncoder(args.rerank_model, max_length=512, device=args.rerank_device)
+    ce_kwargs = {}
     if args.rerank_dtype == "fp16":
-        ce.model.half()         # Amendment 1: fp16 on Metal (8 GB machine)
+        import torch
+        ce_kwargs["model_kwargs"] = {"torch_dtype": torch.float16}   # load as fp16 (Amendment 1)
+    try:
+        ce = CrossEncoder(args.rerank_model, max_length=512, device=args.rerank_device, **ce_kwargs)
+    except TypeError:            # older sentence-transformers API name
+        ce = CrossEncoder(args.rerank_model, max_length=512, device=args.rerank_device,
+                          automodel_args=ce_kwargs.get("model_kwargs"))
+    if args.rerank_dtype == "fp16":
+        ce.model.half()
     for rec in stage["records"]:
         q = questions[rec["qid"]]
         # score the union of the reranked arms' candidates once (a pair's
@@ -369,6 +384,8 @@ def analyse(args, stage, qtype_of, hop_of):
             rerank_dtype=stage.get("rerank_dtype", "fp32"),
             rerank_batch_size=stage.get("rerank_batch_size"),
             hardware=f"{platform.machine()} {platform.platform()}",
+            mps_high_watermark_ratio=__import__("os").environ.get("PYTORCH_MPS_HIGH_WATERMARK_RATIO"),
+            mps_low_watermark_ratio=__import__("os").environ.get("PYTORCH_MPS_LOW_WATERMARK_RATIO"),
             rrf_k=RRF_K, fuse_topn=TOPN_FUSE, base_n=BASE_N, hub_n=HUB_N,
             rerank_n=RERANK_N, boot=args.boot),
         "arms": ARM_DESC,
