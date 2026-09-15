@@ -275,8 +275,10 @@ Findings and changes:
   runner's own hash misses), `harness` and `harness_sha256`; runners
   record `embed_device` and `embed_batch_size`. Tests: hashes present
   and stable; tree hash tracks content and is order-independent. The
-  `_b5` result files predate `benchmarks_sha256` and the embed fields;
-  the dossier records the device and batch size used for them.
+  every cited result file was re-recorded on 2026-09-15 from a clean
+  checkout at `c724c24` (`git_dirty=false`, CPU embedding), so all of
+  them carry `benchmarks_sha256` and the embed fields; the interim
+  `_b5` files are superseded and removed.
 - **Audit corrections:** `docs/COUNCIL_AUDIT.md` no longer claims
   "sorted iteration everywhere / fixed and proven"; the "+19.6"
   attribution is replaced by the re-measured value.
@@ -337,10 +339,10 @@ isolated venv with SciPy 1.13.1 over the system packages.
   venv recipe is `python3 -m venv --system-site-packages venv &&
   venv/bin/pip install scipy==1.13.1`.
 - Re-measured with fallback AND packing held constant
-  (`benchmarks/results/hotpotqa_n500_kg_body_b5.json`,
-  `musique_n300_kg_title_b5.json`; manifests now carry `src_sha256`,
-  `harness_sha256` and whole-tree `git_dirty`, which is `true` at
-  `715e295` until these batches land): HotpotQA N=500 @10 naive 0.819 /
+  (`benchmarks/results/hotpotqa_n500_kg_body.json`,
+  `musique_n300_kg_title.json`; first measured on the dirty tree at
+  `715e295`, then re-recorded from a clean checkout at `c724c24` with
+  identical numbers — see the clean-checkout entry below): HotpotQA N=500 @10 naive 0.819 /
   structural_only **0.676** (was 0.675) / hubmesh 0.871 / hippo 0.561 →
   scoring attribution **+19.5** [+16.3, +22.7]; MuSiQue N=300
   structural_only 0.453 (unchanged) → **+16.3** [+11.9, +20.7]. Seedless
@@ -358,6 +360,24 @@ isolated venv with SciPy 1.13.1 over the system packages.
   unchanged) after the first re-run was killed by memory pressure on
   this 8 GB machine during Metal-backed embedding; the recorded runs
   used `--embed-device cpu --embed-batch-size 16`.
+
+### Clean-checkout verification (2026-09-15)
+
+All six result files the documentation cites were re-run from a git
+worktree at `c724c24` with outputs written outside the worktree, so their
+manifests record `git_dirty=false`, `src_sha256`, `benchmarks_sha256`,
+the harness hash, and `embed_device=cpu` / `embed_batch_size=16`:
+`hotpotqa_n500_kg_body.json`, `musique_n300_kg_title.json`,
+`musique_n300_kg_titletext.json`, `ablation_coherence_hotpotqa_n500.json`,
+`ablation_coherence_musique_n300.json`, `ablation_coherence_musique_n2417.json`.
+Every cited number reproduced to the printed precision (scoring
+attribution +19.5 / +16.3; coherence contrasts B−A +0.30, A−C +1.10,
+A−E +0.60 on HotpotQA; +0.28 / +2.14 / +2.17 on MuSiQue N=300; +0.03 /
++0.87 / +1.55 on full MuSiQue dev). One uncited value moved by a single
+tie: `structural_only` recall@10 on the MuSiQue title+text run,
+0.4697 → 0.4706, consistent with CPU-versus-Metal floating-point
+differences in the embeddings. These files replace the earlier
+dirty-tree and `_b5` versions.
 
 ## What was NOT done (deliberately)
 

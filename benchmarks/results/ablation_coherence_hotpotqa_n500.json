@@ -1,14 +1,19 @@
 {
   "manifest": {
-    "timestamp_utc": "2026-09-14T18:53:32Z",
-    "git_commit": "715e29513a857d6940062c4285b0be3ec289744f",
-    "git_dirty": true,
-    "hubmesh_version": "0.4.1",
+    "timestamp_utc": "2026-09-15T16:02:38Z",
+    "git_commit": "c724c241f256fb5ebaf017dc5d963cdc70719aac",
+    "git_dirty": false,
+    "git_dirty_paths": [],
+    "src_sha256": "7f30b32657006a7bc2ea4c355701ccef46d51c735d07ea0559ed042caccba5e7",
+    "benchmarks_sha256": "40be7dddce69435fcd69992e624832c3f0332606b8a55ba6c26620e95a09c53a",
+    "harness": "benchmarks/run_ablation_coherence.py",
+    "harness_sha256": "92db6c0e2ae28066e03ab1dd8b75e560f5cfa42bbe18c62b5308080e48308da3",
+    "hubmesh_version": "0.4.2",
     "python": "3.10.0",
-    "platform": "macOS-26.6.2-arm64-arm-64bit",
+    "platform": "macOS-27.0-arm64-arm-64bit",
     "libs": {
       "numpy": "2.2.3",
-      "scipy": "1.15.2",
+      "scipy": "1.13.1",
       "networkx": "3.4.2",
       "sentence_transformers": "5.4.1",
       "spacy": "3.8.13",
@@ -19,6 +24,8 @@
     "n": 500,
     "seed": 0,
     "embed_model": "all-MiniLM-L6-v2",
+    "embed_device": "cpu",
+    "embed_batch_size": 16,
     "alpha": 0.15,
     "weights": "3:1:1 sum",
     "top_k": 10,
@@ -37,7 +44,7 @@
     "paragraphs": 4943,
     "kg_nodes": 32079,
     "kg_edges": 249804,
-    "kg_build_s": 115.9
+    "kg_build_s": 110.7
   },
   "n": 500,
   "n_active": 316,
@@ -631,8 +638,8 @@
     "C": 0.891
   },
   "timing_s_per_query": {
-    "pooled_solve_mean": 0.0279,
-    "solve_multi_mean_active": 0.1222
+    "pooled_solve_mean": 0.0265,
+    "solve_multi_mean_active": 0.1179
   },
   "per_query": [
     {
@@ -641,7 +648,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.029,
+      "t_solve": 0.0259,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -685,8 +692,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0272,
-      "t_multi": 0.122,
+      "t_solve": 0.026,
+      "t_multi": 0.1159,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -729,7 +736,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0271,
+      "t_solve": 0.0263,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -773,7 +780,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.028,
+      "t_solve": 0.026,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.0,
@@ -817,7 +824,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0269,
+      "t_solve": 0.0297,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -861,8 +868,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0262,
-      "t_multi": 0.1143,
+      "t_solve": 0.0293,
+      "t_multi": 0.1151,
       "naive": {
         "@2": 0.0,
         "@5": 0.0,
@@ -905,7 +912,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.026,
+      "t_solve": 0.0271,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.0,
@@ -949,7 +956,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0265,
+      "t_solve": 0.0259,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -993,8 +1000,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0296,
-      "t_multi": 0.1182,
+      "t_solve": 0.0246,
+      "t_multi": 0.1136,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -1037,8 +1044,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0265,
-      "t_multi": 0.1139,
+      "t_solve": 0.0295,
+      "t_multi": 0.1135,
       "naive": {
         "@2": 0.0,
         "@5": 0.0,
@@ -1081,8 +1088,8 @@
       "fallback": true,
       "active": true,
       "hop": null,
-      "t_solve": 0.0265,
-      "t_multi": 0.1415,
+      "t_solve": 0.0274,
+      "t_multi": 0.1352,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -1125,8 +1132,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0264,
-      "t_multi": 0.1168,
+      "t_solve": 0.026,
+      "t_multi": 0.1121,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -1169,7 +1176,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0262,
+      "t_solve": 0.026,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -1213,8 +1220,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0279,
-      "t_multi": 0.116,
+      "t_solve": 0.0261,
+      "t_multi": 0.1128,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -1257,8 +1264,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0295,
-      "t_multi": 0.1182,
+      "t_solve": 0.0265,
+      "t_multi": 0.1125,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -1301,8 +1308,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0307,
-      "t_multi": 0.1217,
+      "t_solve": 0.0261,
+      "t_multi": 0.1184,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -1345,8 +1352,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0265,
-      "t_multi": 0.1163,
+      "t_solve": 0.026,
+      "t_multi": 0.1122,
       "naive": {
         "@2": 0.0,
         "@5": 0.0,
@@ -1389,8 +1396,8 @@
       "fallback": true,
       "active": true,
       "hop": null,
-      "t_solve": 0.0269,
-      "t_multi": 0.1422,
+      "t_solve": 0.0251,
+      "t_multi": 0.1357,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -1433,8 +1440,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0262,
-      "t_multi": 0.1228,
+      "t_solve": 0.025,
+      "t_multi": 0.1218,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -1477,8 +1484,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0274,
-      "t_multi": 0.1231,
+      "t_solve": 0.0261,
+      "t_multi": 0.1124,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -1521,7 +1528,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0294,
+      "t_solve": 0.0261,
       "t_multi": 0.0,
       "naive": {
         "@2": 1.0,
@@ -1565,8 +1572,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0359,
-      "t_multi": 0.1168,
+      "t_solve": 0.026,
+      "t_multi": 0.1125,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -1609,7 +1616,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0266,
+      "t_solve": 0.0305,
       "t_multi": 0.0,
       "naive": {
         "@2": 1.0,
@@ -1653,8 +1660,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0267,
-      "t_multi": 0.135,
+      "t_solve": 0.0264,
+      "t_multi": 0.122,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -1697,8 +1704,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0264,
-      "t_multi": 0.1271,
+      "t_solve": 0.0256,
+      "t_multi": 0.1206,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -1741,8 +1748,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0258,
-      "t_multi": 0.1229,
+      "t_solve": 0.0266,
+      "t_multi": 0.1159,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -1785,7 +1792,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0263,
+      "t_solve": 0.0259,
       "t_multi": 0.0,
       "naive": {
         "@2": 1.0,
@@ -1829,8 +1836,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0263,
-      "t_multi": 0.1156,
+      "t_solve": 0.026,
+      "t_multi": 0.1124,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -1873,7 +1880,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0315,
+      "t_solve": 0.0265,
       "t_multi": 0.0,
       "naive": {
         "@2": 1.0,
@@ -1917,7 +1924,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0201,
+      "t_solve": 0.017,
       "t_multi": 0.0,
       "naive": {
         "@2": 1.0,
@@ -1962,7 +1969,7 @@
       "active": true,
       "hop": null,
       "t_solve": 0.0259,
-      "t_multi": 0.1121,
+      "t_multi": 0.1071,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -2005,8 +2012,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0272,
-      "t_multi": 0.1166,
+      "t_solve": 0.026,
+      "t_multi": 0.1139,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -2049,8 +2056,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0271,
-      "t_multi": 0.1166,
+      "t_solve": 0.0283,
+      "t_multi": 0.1133,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -2093,8 +2100,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0267,
-      "t_multi": 0.115,
+      "t_solve": 0.026,
+      "t_multi": 0.1123,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -2137,8 +2144,8 @@
       "fallback": true,
       "active": true,
       "hop": null,
-      "t_solve": 0.0272,
-      "t_multi": 0.1385,
+      "t_solve": 0.0275,
+      "t_multi": 0.1404,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -2181,8 +2188,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0264,
-      "t_multi": 0.1191,
+      "t_solve": 0.0275,
+      "t_multi": 0.1154,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -2225,8 +2232,8 @@
       "fallback": true,
       "active": true,
       "hop": null,
-      "t_solve": 0.0274,
-      "t_multi": 0.1405,
+      "t_solve": 0.0273,
+      "t_multi": 0.1404,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -2269,8 +2276,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0262,
-      "t_multi": 0.1181,
+      "t_solve": 0.0311,
+      "t_multi": 0.1153,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -2313,7 +2320,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0273,
+      "t_solve": 0.026,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -2357,8 +2364,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0283,
-      "t_multi": 0.1163,
+      "t_solve": 0.0264,
+      "t_multi": 0.1142,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -2401,8 +2408,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0281,
-      "t_multi": 0.1391,
+      "t_solve": 0.0261,
+      "t_multi": 0.1385,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -2445,7 +2452,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0285,
+      "t_solve": 0.0261,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -2489,8 +2496,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0304,
-      "t_multi": 0.1313,
+      "t_solve": 0.026,
+      "t_multi": 0.1203,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -2533,8 +2540,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0307,
-      "t_multi": 0.115,
+      "t_solve": 0.0261,
+      "t_multi": 0.1121,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -2577,8 +2584,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0335,
-      "t_multi": 0.1199,
+      "t_solve": 0.0258,
+      "t_multi": 0.1124,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -2621,8 +2628,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0265,
-      "t_multi": 0.1243,
+      "t_solve": 0.0278,
+      "t_multi": 0.128,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -2665,8 +2672,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0272,
-      "t_multi": 0.1175,
+      "t_solve": 0.0295,
+      "t_multi": 0.1142,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -2709,8 +2716,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0269,
-      "t_multi": 0.1168,
+      "t_solve": 0.0259,
+      "t_multi": 0.1122,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -2753,7 +2760,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0266,
+      "t_solve": 0.0259,
       "t_multi": 0.0,
       "naive": {
         "@2": 1.0,
@@ -2797,8 +2804,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0278,
-      "t_multi": 0.1158,
+      "t_solve": 0.0259,
+      "t_multi": 0.1131,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -2841,8 +2848,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0267,
-      "t_multi": 0.1153,
+      "t_solve": 0.026,
+      "t_multi": 0.1128,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -2885,8 +2892,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0277,
-      "t_multi": 0.1309,
+      "t_solve": 0.0303,
+      "t_multi": 0.1234,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -2929,8 +2936,8 @@
       "fallback": true,
       "active": true,
       "hop": null,
-      "t_solve": 0.0299,
-      "t_multi": 0.1413,
+      "t_solve": 0.0275,
+      "t_multi": 0.138,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -2973,8 +2980,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0331,
-      "t_multi": 0.126,
+      "t_solve": 0.0273,
+      "t_multi": 0.1218,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -3017,7 +3024,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0263,
+      "t_solve": 0.026,
       "t_multi": 0.0,
       "naive": {
         "@2": 1.0,
@@ -3061,7 +3068,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0276,
+      "t_solve": 0.0259,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -3105,8 +3112,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0265,
-      "t_multi": 0.1294,
+      "t_solve": 0.026,
+      "t_multi": 0.1238,
       "naive": {
         "@2": 0.0,
         "@5": 0.5,
@@ -3149,8 +3156,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.029,
-      "t_multi": 0.117,
+      "t_solve": 0.0305,
+      "t_multi": 0.115,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -3193,8 +3200,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0264,
-      "t_multi": 0.1152,
+      "t_solve": 0.0269,
+      "t_multi": 0.1146,
       "naive": {
         "@2": 0.0,
         "@5": 0.5,
@@ -3237,8 +3244,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0265,
-      "t_multi": 0.1186,
+      "t_solve": 0.03,
+      "t_multi": 0.1136,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -3281,7 +3288,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0264,
+      "t_solve": 0.0261,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -3325,7 +3332,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0262,
+      "t_solve": 0.0259,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -3369,8 +3376,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.027,
-      "t_multi": 0.1254,
+      "t_solve": 0.0255,
+      "t_multi": 0.1206,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -3413,7 +3420,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0266,
+      "t_solve": 0.026,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -3457,8 +3464,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0274,
-      "t_multi": 0.1176,
+      "t_solve": 0.026,
+      "t_multi": 0.1122,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -3501,8 +3508,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0271,
-      "t_multi": 0.1142,
+      "t_solve": 0.0259,
+      "t_multi": 0.1122,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -3545,7 +3552,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0267,
+      "t_solve": 0.0259,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -3589,8 +3596,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0263,
-      "t_multi": 0.119,
+      "t_solve": 0.0259,
+      "t_multi": 0.1122,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -3633,8 +3640,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0273,
-      "t_multi": 0.1182,
+      "t_solve": 0.028,
+      "t_multi": 0.1125,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -3677,7 +3684,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0272,
+      "t_solve": 0.0259,
       "t_multi": 0.0,
       "naive": {
         "@2": 1.0,
@@ -3721,8 +3728,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0282,
-      "t_multi": 0.1176,
+      "t_solve": 0.0259,
+      "t_multi": 0.1121,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -3765,7 +3772,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.03,
+      "t_solve": 0.026,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -3809,7 +3816,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.027,
+      "t_solve": 0.0261,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -3853,8 +3860,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0259,
-      "t_multi": 0.115,
+      "t_solve": 0.0252,
+      "t_multi": 0.1153,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -3897,7 +3904,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0272,
+      "t_solve": 0.0282,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.0,
@@ -3941,7 +3948,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0104,
+      "t_solve": 0.0103,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -3985,8 +3992,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0262,
-      "t_multi": 0.1174,
+      "t_solve": 0.0263,
+      "t_multi": 0.1129,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -4029,8 +4036,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0282,
-      "t_multi": 0.1204,
+      "t_solve": 0.027,
+      "t_multi": 0.1138,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -4073,8 +4080,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0264,
-      "t_multi": 0.1179,
+      "t_solve": 0.0261,
+      "t_multi": 0.1123,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -4117,7 +4124,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0316,
+      "t_solve": 0.0268,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.0,
@@ -4161,8 +4168,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0307,
-      "t_multi": 0.1261,
+      "t_solve": 0.0256,
+      "t_multi": 0.1213,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -4205,7 +4212,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0262,
+      "t_solve": 0.026,
       "t_multi": 0.0,
       "naive": {
         "@2": 1.0,
@@ -4249,7 +4256,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0276,
+      "t_solve": 0.0259,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -4293,8 +4300,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0275,
-      "t_multi": 0.1168,
+      "t_solve": 0.026,
+      "t_multi": 0.1125,
       "naive": {
         "@2": 0.0,
         "@5": 0.5,
@@ -4337,8 +4344,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0267,
-      "t_multi": 0.1166,
+      "t_solve": 0.0259,
+      "t_multi": 0.1122,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -4381,8 +4388,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0279,
-      "t_multi": 0.1174,
+      "t_solve": 0.0262,
+      "t_multi": 0.112,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -4425,8 +4432,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0285,
-      "t_multi": 0.1284,
+      "t_solve": 0.026,
+      "t_multi": 0.1235,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -4469,7 +4476,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0119,
+      "t_solve": 0.0099,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -4513,7 +4520,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0238,
+      "t_solve": 0.0236,
       "t_multi": 0.0,
       "naive": {
         "@2": 1.0,
@@ -4557,8 +4564,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0267,
-      "t_multi": 0.1166,
+      "t_solve": 0.0262,
+      "t_multi": 0.1129,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -4601,8 +4608,8 @@
       "fallback": true,
       "active": true,
       "hop": null,
-      "t_solve": 0.0269,
-      "t_multi": 0.1422,
+      "t_solve": 0.0284,
+      "t_multi": 0.1362,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -4645,8 +4652,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0272,
-      "t_multi": 0.1146,
+      "t_solve": 0.0263,
+      "t_multi": 0.1141,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -4689,8 +4696,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0271,
-      "t_multi": 0.175,
+      "t_solve": 0.0259,
+      "t_multi": 0.1133,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -4733,8 +4740,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0278,
-      "t_multi": 0.1184,
+      "t_solve": 0.0259,
+      "t_multi": 0.1124,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -4777,8 +4784,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.03,
-      "t_multi": 0.1174,
+      "t_solve": 0.0259,
+      "t_multi": 0.1125,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -4821,8 +4828,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0268,
-      "t_multi": 0.1414,
+      "t_solve": 0.0259,
+      "t_multi": 0.1316,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -4865,8 +4872,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0264,
-      "t_multi": 0.116,
+      "t_solve": 0.026,
+      "t_multi": 0.1125,
       "naive": {
         "@2": 0.0,
         "@5": 0.0,
@@ -4909,7 +4916,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0355,
+      "t_solve": 0.0259,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -4953,8 +4960,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0262,
-      "t_multi": 0.1292,
+      "t_solve": 0.026,
+      "t_multi": 0.1207,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -4997,8 +5004,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0271,
-      "t_multi": 0.1213,
+      "t_solve": 0.026,
+      "t_multi": 0.1123,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -5041,8 +5048,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0275,
-      "t_multi": 0.1178,
+      "t_solve": 0.0259,
+      "t_multi": 0.1121,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -5085,8 +5092,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0264,
-      "t_multi": 0.1284,
+      "t_solve": 0.026,
+      "t_multi": 0.1202,
       "naive": {
         "@2": 0.0,
         "@5": 0.5,
@@ -5129,8 +5136,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0264,
-      "t_multi": 0.128,
+      "t_solve": 0.0259,
+      "t_multi": 0.1201,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -5173,7 +5180,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0267,
+      "t_solve": 0.0258,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -5217,7 +5224,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0267,
+      "t_solve": 0.026,
       "t_multi": 0.0,
       "naive": {
         "@2": 1.0,
@@ -5261,7 +5268,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0262,
+      "t_solve": 0.022,
       "t_multi": 0.0,
       "naive": {
         "@2": 1.0,
@@ -5305,7 +5312,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0292,
+      "t_solve": 0.0259,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -5349,7 +5356,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0267,
+      "t_solve": 0.0259,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -5393,8 +5400,8 @@
       "fallback": true,
       "active": true,
       "hop": null,
-      "t_solve": 0.0265,
-      "t_multi": 0.1418,
+      "t_solve": 0.0251,
+      "t_multi": 0.1311,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -5437,7 +5444,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0264,
+      "t_solve": 0.0261,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.0,
@@ -5481,8 +5488,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0242,
-      "t_multi": 0.1044,
+      "t_solve": 0.0258,
+      "t_multi": 0.1051,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -5525,7 +5532,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0265,
+      "t_solve": 0.0262,
       "t_multi": 0.0,
       "naive": {
         "@2": 1.0,
@@ -5569,7 +5576,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0269,
+      "t_solve": 0.026,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -5613,8 +5620,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0259,
-      "t_multi": 0.1259,
+      "t_solve": 0.0251,
+      "t_multi": 0.1179,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -5657,7 +5664,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0266,
+      "t_solve": 0.0261,
       "t_multi": 0.0,
       "naive": {
         "@2": 1.0,
@@ -5701,8 +5708,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0303,
-      "t_multi": 0.114,
+      "t_solve": 0.0255,
+      "t_multi": 0.1103,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -5745,7 +5752,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0255,
+      "t_solve": 0.0251,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.0,
@@ -5789,7 +5796,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0274,
+      "t_solve": 0.026,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -5833,7 +5840,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0267,
+      "t_solve": 0.0258,
       "t_multi": 0.0,
       "naive": {
         "@2": 1.0,
@@ -5877,8 +5884,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0264,
-      "t_multi": 0.1155,
+      "t_solve": 0.0259,
+      "t_multi": 0.1121,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -5921,8 +5928,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0263,
-      "t_multi": 0.1166,
+      "t_solve": 0.026,
+      "t_multi": 0.1121,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -5965,7 +5972,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0271,
+      "t_solve": 0.0259,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -6009,7 +6016,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.031,
+      "t_solve": 0.0258,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.0,
@@ -6053,8 +6060,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.027,
-      "t_multi": 0.1182,
+      "t_solve": 0.0259,
+      "t_multi": 0.1122,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -6097,7 +6104,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0262,
+      "t_solve": 0.0261,
       "t_multi": 0.0,
       "naive": {
         "@2": 1.0,
@@ -6141,7 +6148,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0271,
+      "t_solve": 0.0256,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -6185,7 +6192,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0266,
+      "t_solve": 0.026,
       "t_multi": 0.0,
       "naive": {
         "@2": 1.0,
@@ -6229,8 +6236,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0267,
-      "t_multi": 0.1145,
+      "t_solve": 0.026,
+      "t_multi": 0.1081,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -6273,8 +6280,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0273,
-      "t_multi": 0.1169,
+      "t_solve": 0.026,
+      "t_multi": 0.1125,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -6317,8 +6324,8 @@
       "fallback": true,
       "active": true,
       "hop": null,
-      "t_solve": 0.027,
-      "t_multi": 0.1422,
+      "t_solve": 0.026,
+      "t_multi": 0.132,
       "naive": {
         "@2": 0.0,
         "@5": 0.5,
@@ -6361,8 +6368,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0269,
-      "t_multi": 0.1196,
+      "t_solve": 0.0259,
+      "t_multi": 0.1122,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -6405,8 +6412,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0285,
-      "t_multi": 0.1259,
+      "t_solve": 0.0256,
+      "t_multi": 0.12,
       "naive": {
         "@2": 0.0,
         "@5": 0.0,
@@ -6449,8 +6456,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0265,
-      "t_multi": 0.1427,
+      "t_solve": 0.0255,
+      "t_multi": 0.1316,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -6493,8 +6500,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.03,
-      "t_multi": 0.1169,
+      "t_solve": 0.0259,
+      "t_multi": 0.1121,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -6537,7 +6544,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0266,
+      "t_solve": 0.0302,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -6581,8 +6588,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.027,
-      "t_multi": 0.1176,
+      "t_solve": 0.0299,
+      "t_multi": 0.1147,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -6625,8 +6632,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0257,
-      "t_multi": 0.1171,
+      "t_solve": 0.0258,
+      "t_multi": 0.1151,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -6669,8 +6676,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.026,
-      "t_multi": 0.1271,
+      "t_solve": 0.0256,
+      "t_multi": 0.1246,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -6713,7 +6720,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0265,
+      "t_solve": 0.0268,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -6757,7 +6764,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0275,
+      "t_solve": 0.0304,
       "t_multi": 0.0,
       "naive": {
         "@2": 1.0,
@@ -6801,8 +6808,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.027,
-      "t_multi": 0.1158,
+      "t_solve": 0.0272,
+      "t_multi": 0.116,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -6845,7 +6852,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0276,
+      "t_solve": 0.0288,
       "t_multi": 0.0,
       "naive": {
         "@2": 1.0,
@@ -6889,7 +6896,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0274,
+      "t_solve": 0.0261,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -6933,8 +6940,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.034,
-      "t_multi": 0.1158,
+      "t_solve": 0.026,
+      "t_multi": 0.1123,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -6977,8 +6984,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0265,
-      "t_multi": 0.1141,
+      "t_solve": 0.0268,
+      "t_multi": 0.1122,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -7021,7 +7028,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0297,
+      "t_solve": 0.0261,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -7065,8 +7072,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0265,
-      "t_multi": 0.123,
+      "t_solve": 0.0251,
+      "t_multi": 0.1185,
       "naive": {
         "@2": 0.0,
         "@5": 0.5,
@@ -7109,7 +7116,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.027,
+      "t_solve": 0.0259,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -7153,8 +7160,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0271,
-      "t_multi": 0.1187,
+      "t_solve": 0.0264,
+      "t_multi": 0.1124,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -7197,8 +7204,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.035,
-      "t_multi": 0.1149,
+      "t_solve": 0.0252,
+      "t_multi": 0.1102,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -7241,8 +7248,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0268,
-      "t_multi": 0.1192,
+      "t_solve": 0.0263,
+      "t_multi": 0.1148,
       "naive": {
         "@2": 0.0,
         "@5": 1.0,
@@ -7285,8 +7292,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0264,
-      "t_multi": 0.1401,
+      "t_solve": 0.0279,
+      "t_multi": 0.1397,
       "naive": {
         "@2": 0.0,
         "@5": 0.5,
@@ -7329,8 +7336,8 @@
       "fallback": true,
       "active": true,
       "hop": null,
-      "t_solve": 0.0275,
-      "t_multi": 0.1363,
+      "t_solve": 0.0246,
+      "t_multi": 0.1308,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -7373,7 +7380,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0358,
+      "t_solve": 0.0262,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -7417,7 +7424,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0262,
+      "t_solve": 0.0261,
       "t_multi": 0.0,
       "naive": {
         "@2": 1.0,
@@ -7461,8 +7468,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.034,
-      "t_multi": 0.1138,
+      "t_solve": 0.0261,
+      "t_multi": 0.1123,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -7505,8 +7512,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0265,
-      "t_multi": 0.1162,
+      "t_solve": 0.0261,
+      "t_multi": 0.114,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -7549,8 +7556,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0263,
-      "t_multi": 0.1412,
+      "t_solve": 0.0281,
+      "t_multi": 0.1399,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -7593,7 +7600,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0289,
+      "t_solve": 0.026,
       "t_multi": 0.0,
       "naive": {
         "@2": 1.0,
@@ -7637,8 +7644,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0267,
-      "t_multi": 0.119,
+      "t_solve": 0.0261,
+      "t_multi": 0.1129,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -7681,8 +7688,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.027,
-      "t_multi": 0.1259,
+      "t_solve": 0.026,
+      "t_multi": 0.1203,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -7725,8 +7732,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0265,
-      "t_multi": 0.128,
+      "t_solve": 0.026,
+      "t_multi": 0.1207,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -7769,7 +7776,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0263,
+      "t_solve": 0.0259,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -7813,8 +7820,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0314,
-      "t_multi": 0.1176,
+      "t_solve": 0.0259,
+      "t_multi": 0.1122,
       "naive": {
         "@2": 0.0,
         "@5": 0.0,
@@ -7857,8 +7864,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0299,
-      "t_multi": 0.1188,
+      "t_solve": 0.0254,
+      "t_multi": 0.1121,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -7901,7 +7908,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0263,
+      "t_solve": 0.0258,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -7945,7 +7952,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0265,
+      "t_solve": 0.0258,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -7989,7 +7996,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0267,
+      "t_solve": 0.026,
       "t_multi": 0.0,
       "naive": {
         "@2": 1.0,
@@ -8033,8 +8040,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0263,
-      "t_multi": 0.1279,
+      "t_solve": 0.0261,
+      "t_multi": 0.1203,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -8077,7 +8084,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0268,
+      "t_solve": 0.0261,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -8121,8 +8128,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0289,
-      "t_multi": 0.1153,
+      "t_solve": 0.0259,
+      "t_multi": 0.1122,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -8165,8 +8172,8 @@
       "fallback": true,
       "active": true,
       "hop": null,
-      "t_solve": 0.0265,
-      "t_multi": 0.1373,
+      "t_solve": 0.026,
+      "t_multi": 0.1318,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -8209,8 +8216,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0264,
-      "t_multi": 0.1208,
+      "t_solve": 0.026,
+      "t_multi": 0.1121,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -8253,8 +8260,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0267,
-      "t_multi": 0.1437,
+      "t_solve": 0.0285,
+      "t_multi": 0.1356,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -8297,8 +8304,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0263,
-      "t_multi": 0.1164,
+      "t_solve": 0.026,
+      "t_multi": 0.1125,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -8341,7 +8348,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0266,
+      "t_solve": 0.0308,
       "t_multi": 0.0,
       "naive": {
         "@2": 1.0,
@@ -8385,8 +8392,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0271,
-      "t_multi": 0.1436,
+      "t_solve": 0.03,
+      "t_multi": 0.1358,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -8429,7 +8436,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0268,
+      "t_solve": 0.0275,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -8473,8 +8480,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0264,
-      "t_multi": 0.117,
+      "t_solve": 0.026,
+      "t_multi": 0.1124,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -8517,7 +8524,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.027,
+      "t_solve": 0.026,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.0,
@@ -8561,8 +8568,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0283,
-      "t_multi": 0.1157,
+      "t_solve": 0.0261,
+      "t_multi": 0.1122,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -8605,7 +8612,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0265,
+      "t_solve": 0.0259,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -8649,7 +8656,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0287,
+      "t_solve": 0.0277,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -8693,7 +8700,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0287,
+      "t_solve": 0.0283,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -8737,7 +8744,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0275,
+      "t_solve": 0.0273,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -8781,8 +8788,8 @@
       "fallback": true,
       "active": true,
       "hop": null,
-      "t_solve": 0.027,
-      "t_multi": 0.1414,
+      "t_solve": 0.026,
+      "t_multi": 0.1407,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -8825,8 +8832,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0326,
-      "t_multi": 0.1242,
+      "t_solve": 0.0263,
+      "t_multi": 0.1223,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -8869,8 +8876,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0277,
-      "t_multi": 0.1162,
+      "t_solve": 0.0255,
+      "t_multi": 0.1104,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -8913,7 +8920,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0263,
+      "t_solve": 0.0262,
       "t_multi": 0.0,
       "naive": {
         "@2": 1.0,
@@ -8957,7 +8964,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0264,
+      "t_solve": 0.026,
       "t_multi": 0.0,
       "naive": {
         "@2": 1.0,
@@ -9001,7 +9008,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0284,
+      "t_solve": 0.0273,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.0,
@@ -9045,7 +9052,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0264,
+      "t_solve": 0.0303,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -9089,8 +9096,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0858,
-      "t_multi": 0.1182,
+      "t_solve": 0.0273,
+      "t_multi": 0.1157,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -9133,8 +9140,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0262,
-      "t_multi": 0.113,
+      "t_solve": 0.0256,
+      "t_multi": 0.1106,
       "naive": {
         "@2": 0.0,
         "@5": 0.0,
@@ -9177,7 +9184,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0265,
+      "t_solve": 0.0263,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -9221,8 +9228,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0263,
-      "t_multi": 0.1152,
+      "t_solve": 0.0302,
+      "t_multi": 0.1155,
       "naive": {
         "@2": 0.0,
         "@5": 0.0,
@@ -9265,8 +9272,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0286,
-      "t_multi": 0.1164,
+      "t_solve": 0.0262,
+      "t_multi": 0.1145,
       "naive": {
         "@2": 0.0,
         "@5": 0.5,
@@ -9309,7 +9316,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0265,
+      "t_solve": 0.0261,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -9353,8 +9360,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0268,
-      "t_multi": 0.1191,
+      "t_solve": 0.0266,
+      "t_multi": 0.112,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -9397,8 +9404,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0268,
-      "t_multi": 0.117,
+      "t_solve": 0.026,
+      "t_multi": 0.112,
       "naive": {
         "@2": 0.0,
         "@5": 0.5,
@@ -9441,8 +9448,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0264,
-      "t_multi": 0.1172,
+      "t_solve": 0.0259,
+      "t_multi": 0.1148,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -9485,8 +9492,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0265,
-      "t_multi": 0.1301,
+      "t_solve": 0.0262,
+      "t_multi": 0.1203,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -9529,8 +9536,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0312,
-      "t_multi": 0.1169,
+      "t_solve": 0.026,
+      "t_multi": 0.1142,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -9573,7 +9580,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0271,
+      "t_solve": 0.0298,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -9617,7 +9624,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0336,
+      "t_solve": 0.0276,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -9661,8 +9668,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0266,
-      "t_multi": 0.1174,
+      "t_solve": 0.0262,
+      "t_multi": 0.1148,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -9705,8 +9712,8 @@
       "fallback": true,
       "active": true,
       "hop": null,
-      "t_solve": 0.0287,
-      "t_multi": 0.1359,
+      "t_solve": 0.0265,
+      "t_multi": 0.1329,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -9749,7 +9756,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0266,
+      "t_solve": 0.0259,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -9793,8 +9800,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0252,
-      "t_multi": 0.1095,
+      "t_solve": 0.0246,
+      "t_multi": 0.1061,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -9837,8 +9844,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0279,
-      "t_multi": 0.1115,
+      "t_solve": 0.0257,
+      "t_multi": 0.1103,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -9881,7 +9888,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0264,
+      "t_solve": 0.026,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -9925,8 +9932,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0263,
-      "t_multi": 0.1212,
+      "t_solve": 0.0259,
+      "t_multi": 0.1122,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -9969,8 +9976,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0271,
-      "t_multi": 0.1162,
+      "t_solve": 0.0259,
+      "t_multi": 0.1122,
       "naive": {
         "@2": 0.0,
         "@5": 0.0,
@@ -10013,8 +10020,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0266,
-      "t_multi": 0.1292,
+      "t_solve": 0.026,
+      "t_multi": 0.1203,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -10057,8 +10064,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0293,
-      "t_multi": 0.1166,
+      "t_solve": 0.0259,
+      "t_multi": 0.1121,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -10101,8 +10108,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0269,
-      "t_multi": 0.1257,
+      "t_solve": 0.0259,
+      "t_multi": 0.1201,
       "naive": {
         "@2": 0.0,
         "@5": 0.5,
@@ -10145,7 +10152,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0323,
+      "t_solve": 0.026,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.0,
@@ -10189,7 +10196,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0263,
+      "t_solve": 0.0259,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -10233,8 +10240,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0264,
-      "t_multi": 0.1169,
+      "t_solve": 0.0262,
+      "t_multi": 0.1123,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -10277,8 +10284,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0293,
-      "t_multi": 0.1213,
+      "t_solve": 0.0258,
+      "t_multi": 0.1123,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -10321,7 +10328,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0266,
+      "t_solve": 0.0259,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -10365,8 +10372,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0266,
-      "t_multi": 0.1197,
+      "t_solve": 0.0259,
+      "t_multi": 0.1136,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -10409,8 +10416,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0303,
-      "t_multi": 0.1162,
+      "t_solve": 0.0308,
+      "t_multi": 0.1151,
       "naive": {
         "@2": 0.0,
         "@5": 0.0,
@@ -10453,7 +10460,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0304,
+      "t_solve": 0.0282,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -10497,7 +10504,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0264,
+      "t_solve": 0.0263,
       "t_multi": 0.0,
       "naive": {
         "@2": 1.0,
@@ -10541,8 +10548,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0264,
-      "t_multi": 0.1456,
+      "t_solve": 0.0304,
+      "t_multi": 0.1372,
       "naive": {
         "@2": 0.0,
         "@5": 0.0,
@@ -10585,8 +10592,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0257,
-      "t_multi": 0.117,
+      "t_solve": 0.025,
+      "t_multi": 0.1119,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -10629,8 +10636,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0344,
-      "t_multi": 0.1159,
+      "t_solve": 0.0261,
+      "t_multi": 0.1149,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -10673,7 +10680,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0277,
+      "t_solve": 0.0269,
       "t_multi": 0.0,
       "naive": {
         "@2": 1.0,
@@ -10717,8 +10724,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0264,
-      "t_multi": 0.1155,
+      "t_solve": 0.0279,
+      "t_multi": 0.1154,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -10761,8 +10768,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0264,
-      "t_multi": 0.1199,
+      "t_solve": 0.0266,
+      "t_multi": 0.1124,
       "naive": {
         "@2": 0.0,
         "@5": 1.0,
@@ -10805,8 +10812,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0314,
-      "t_multi": 0.1189,
+      "t_solve": 0.0262,
+      "t_multi": 0.113,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -10849,7 +10856,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0275,
+      "t_solve": 0.026,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -10893,8 +10900,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0281,
-      "t_multi": 0.1182,
+      "t_solve": 0.026,
+      "t_multi": 0.1122,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -10937,8 +10944,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0275,
-      "t_multi": 0.1183,
+      "t_solve": 0.0259,
+      "t_multi": 0.1125,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -10981,7 +10988,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.027,
+      "t_solve": 0.026,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -11025,8 +11032,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0266,
-      "t_multi": 0.1424,
+      "t_solve": 0.026,
+      "t_multi": 0.1336,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -11069,8 +11076,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0271,
-      "t_multi": 0.1196,
+      "t_solve": 0.0262,
+      "t_multi": 0.1146,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -11113,8 +11120,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0265,
-      "t_multi": 0.1297,
+      "t_solve": 0.0261,
+      "t_multi": 0.1232,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -11157,8 +11164,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.036,
-      "t_multi": 0.1173,
+      "t_solve": 0.026,
+      "t_multi": 0.1151,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -11201,8 +11208,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.027,
-      "t_multi": 0.1145,
+      "t_solve": 0.026,
+      "t_multi": 0.1123,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -11245,7 +11252,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0283,
+      "t_solve": 0.0306,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -11289,8 +11296,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0276,
-      "t_multi": 0.1168,
+      "t_solve": 0.0303,
+      "t_multi": 0.1148,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -11333,8 +11340,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0264,
-      "t_multi": 0.1204,
+      "t_solve": 0.0266,
+      "t_multi": 0.1122,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -11377,8 +11384,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0258,
-      "t_multi": 0.1184,
+      "t_solve": 0.0255,
+      "t_multi": 0.1123,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -11421,8 +11428,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0267,
-      "t_multi": 0.129,
+      "t_solve": 0.0259,
+      "t_multi": 0.115,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -11465,8 +11472,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0343,
-      "t_multi": 0.1244,
+      "t_solve": 0.03,
+      "t_multi": 0.1135,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -11509,7 +11516,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0306,
+      "t_solve": 0.0271,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -11553,7 +11560,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0265,
+      "t_solve": 0.0281,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -11597,7 +11604,7 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0264,
+      "t_solve": 0.0262,
       "t_multi": 0.1136,
       "naive": {
         "@2": 0.5,
@@ -11641,8 +11648,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.029,
-      "t_multi": 0.1162,
+      "t_solve": 0.026,
+      "t_multi": 0.1121,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -11685,8 +11692,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0291,
-      "t_multi": 0.1172,
+      "t_solve": 0.0262,
+      "t_multi": 0.113,
       "naive": {
         "@2": 0.0,
         "@5": 0.0,
@@ -11729,8 +11736,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.029,
-      "t_multi": 0.1174,
+      "t_solve": 0.0295,
+      "t_multi": 0.1111,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -11773,7 +11780,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0839,
+      "t_solve": 0.0272,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.0,
@@ -11817,8 +11824,8 @@
       "fallback": true,
       "active": true,
       "hop": null,
-      "t_solve": 0.0343,
-      "t_multi": 0.1358,
+      "t_solve": 0.026,
+      "t_multi": 0.1324,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -11861,8 +11868,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0265,
-      "t_multi": 0.1406,
+      "t_solve": 0.026,
+      "t_multi": 0.1317,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -11905,8 +11912,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0267,
-      "t_multi": 0.1217,
+      "t_solve": 0.026,
+      "t_multi": 0.1202,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -11949,7 +11956,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.024,
+      "t_solve": 0.0222,
       "t_multi": 0.0,
       "naive": {
         "@2": 1.0,
@@ -11993,7 +12000,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0266,
+      "t_solve": 0.026,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -12037,7 +12044,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0265,
+      "t_solve": 0.0258,
       "t_multi": 0.0,
       "naive": {
         "@2": 1.0,
@@ -12081,8 +12088,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0262,
-      "t_multi": 0.1368,
+      "t_solve": 0.026,
+      "t_multi": 0.132,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -12125,8 +12132,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0261,
-      "t_multi": 0.1245,
+      "t_solve": 0.026,
+      "t_multi": 0.1218,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -12169,8 +12176,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0262,
-      "t_multi": 0.1136,
+      "t_solve": 0.0296,
+      "t_multi": 0.1141,
       "naive": {
         "@2": 0.0,
         "@5": 1.0,
@@ -12213,8 +12220,8 @@
       "fallback": true,
       "active": true,
       "hop": null,
-      "t_solve": 0.0266,
-      "t_multi": 0.1404,
+      "t_solve": 0.0262,
+      "t_multi": 0.1376,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -12257,8 +12264,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0261,
-      "t_multi": 0.1145,
+      "t_solve": 0.0274,
+      "t_multi": 0.114,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -12301,7 +12308,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0268,
+      "t_solve": 0.0269,
       "t_multi": 0.0,
       "naive": {
         "@2": 1.0,
@@ -12345,7 +12352,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0294,
+      "t_solve": 0.0261,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -12389,8 +12396,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0274,
-      "t_multi": 0.1186,
+      "t_solve": 0.026,
+      "t_multi": 0.1123,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -12433,8 +12440,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0264,
-      "t_multi": 0.1176,
+      "t_solve": 0.026,
+      "t_multi": 0.1122,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -12477,8 +12484,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0264,
-      "t_multi": 0.1162,
+      "t_solve": 0.026,
+      "t_multi": 0.1123,
       "naive": {
         "@2": 0.0,
         "@5": 0.5,
@@ -12521,7 +12528,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0269,
+      "t_solve": 0.026,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -12565,8 +12572,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.027,
-      "t_multi": 0.1151,
+      "t_solve": 0.0259,
+      "t_multi": 0.1121,
       "naive": {
         "@2": 0.0,
         "@5": 1.0,
@@ -12609,7 +12616,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0348,
+      "t_solve": 0.0259,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -12654,7 +12661,7 @@
       "active": true,
       "hop": null,
       "t_solve": 0.0261,
-      "t_multi": 0.1177,
+      "t_multi": 0.1122,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -12697,8 +12704,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0252,
-      "t_multi": 0.1135,
+      "t_solve": 0.0251,
+      "t_multi": 0.1083,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -12741,8 +12748,8 @@
       "fallback": true,
       "active": true,
       "hop": null,
-      "t_solve": 0.0265,
-      "t_multi": 0.1414,
+      "t_solve": 0.0261,
+      "t_multi": 0.1318,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -12785,8 +12792,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0264,
-      "t_multi": 0.1134,
+      "t_solve": 0.0261,
+      "t_multi": 0.1124,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -12829,8 +12836,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0272,
-      "t_multi": 0.1235,
+      "t_solve": 0.026,
+      "t_multi": 0.1202,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -12873,8 +12880,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0259,
-      "t_multi": 0.1144,
+      "t_solve": 0.0255,
+      "t_multi": 0.1102,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -12917,8 +12924,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0265,
-      "t_multi": 0.115,
+      "t_solve": 0.0264,
+      "t_multi": 0.1149,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -12961,7 +12968,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0307,
+      "t_solve": 0.0296,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -13005,7 +13012,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.032,
+      "t_solve": 0.0255,
       "t_multi": 0.0,
       "naive": {
         "@2": 1.0,
@@ -13049,7 +13056,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0266,
+      "t_solve": 0.026,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -13093,8 +13100,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0257,
-      "t_multi": 0.1125,
+      "t_solve": 0.0304,
+      "t_multi": 0.1129,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -13137,8 +13144,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0264,
-      "t_multi": 0.1277,
+      "t_solve": 0.0284,
+      "t_multi": 0.124,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -13181,8 +13188,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0297,
-      "t_multi": 0.1136,
+      "t_solve": 0.0261,
+      "t_multi": 0.1125,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -13225,7 +13232,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0261,
+      "t_solve": 0.0256,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -13269,8 +13276,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0257,
-      "t_multi": 0.1137,
+      "t_solve": 0.0252,
+      "t_multi": 0.1102,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -13313,8 +13320,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0265,
-      "t_multi": 0.1157,
+      "t_solve": 0.0259,
+      "t_multi": 0.1124,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -13357,7 +13364,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0264,
+      "t_solve": 0.026,
       "t_multi": 0.0,
       "naive": {
         "@2": 1.0,
@@ -13401,8 +13408,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0265,
-      "t_multi": 0.1149,
+      "t_solve": 0.0259,
+      "t_multi": 0.1136,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -13445,8 +13452,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0328,
-      "t_multi": 0.1179,
+      "t_solve": 0.0259,
+      "t_multi": 0.1136,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -13489,8 +13496,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0267,
-      "t_multi": 0.1397,
+      "t_solve": 0.0262,
+      "t_multi": 0.1356,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -13533,8 +13540,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0263,
-      "t_multi": 0.1118,
+      "t_solve": 0.0262,
+      "t_multi": 0.1122,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -13577,8 +13584,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0262,
-      "t_multi": 0.1595,
+      "t_solve": 0.026,
+      "t_multi": 0.1413,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -13621,8 +13628,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0272,
-      "t_multi": 0.1184,
+      "t_solve": 0.0261,
+      "t_multi": 0.1153,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -13665,8 +13672,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0267,
-      "t_multi": 0.1367,
+      "t_solve": 0.0261,
+      "t_multi": 0.1378,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -13709,8 +13716,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0263,
-      "t_multi": 0.1258,
+      "t_solve": 0.0286,
+      "t_multi": 0.1256,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -13753,7 +13760,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0123,
+      "t_solve": 0.0099,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -13797,8 +13804,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0303,
-      "t_multi": 0.1287,
+      "t_solve": 0.026,
+      "t_multi": 0.1217,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -13841,7 +13848,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0265,
+      "t_solve": 0.0297,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -13885,8 +13892,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0265,
-      "t_multi": 0.1147,
+      "t_solve": 0.026,
+      "t_multi": 0.114,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -13929,8 +13936,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.027,
-      "t_multi": 0.117,
+      "t_solve": 0.0269,
+      "t_multi": 0.1126,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -13973,7 +13980,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0289,
+      "t_solve": 0.0269,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -14017,8 +14024,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0318,
-      "t_multi": 0.1192,
+      "t_solve": 0.026,
+      "t_multi": 0.1151,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -14061,8 +14068,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0298,
-      "t_multi": 0.1183,
+      "t_solve": 0.0273,
+      "t_multi": 0.1152,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -14105,8 +14112,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0257,
-      "t_multi": 0.1166,
+      "t_solve": 0.0251,
+      "t_multi": 0.1126,
       "naive": {
         "@2": 0.0,
         "@5": 1.0,
@@ -14149,8 +14156,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0264,
-      "t_multi": 0.1141,
+      "t_solve": 0.0261,
+      "t_multi": 0.1135,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -14193,7 +14200,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.03,
+      "t_solve": 0.0267,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -14237,8 +14244,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0261,
-      "t_multi": 0.1219,
+      "t_solve": 0.03,
+      "t_multi": 0.116,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -14281,7 +14288,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0278,
+      "t_solve": 0.026,
       "t_multi": 0.0,
       "naive": {
         "@2": 1.0,
@@ -14325,8 +14332,8 @@
       "fallback": true,
       "active": true,
       "hop": null,
-      "t_solve": 0.0289,
-      "t_multi": 0.1392,
+      "t_solve": 0.0252,
+      "t_multi": 0.1353,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -14369,8 +14376,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0309,
-      "t_multi": 0.1151,
+      "t_solve": 0.026,
+      "t_multi": 0.1121,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -14413,7 +14420,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0264,
+      "t_solve": 0.0306,
       "t_multi": 0.0,
       "naive": {
         "@2": 1.0,
@@ -14457,8 +14464,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0263,
-      "t_multi": 0.1186,
+      "t_solve": 0.0284,
+      "t_multi": 0.1126,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -14497,930 +14504,6 @@
     },
     {
       "qid": "5ae0ba9055429924de1b715c",
-      "n_seeds": 1,
-      "fallback": false,
-      "active": false,
-      "hop": null,
-      "t_solve": 0.0345,
-      "t_multi": 0.0,
-      "naive": {
-        "@2": 0.5,
-        "@5": 0.5,
-        "@10": 0.5
-      },
-      "A": {
-        "@2": 0.5,
-        "@5": 0.5,
-        "@10": 0.5
-      },
-      "G": {
-        "@2": 0.5,
-        "@5": 0.5,
-        "@10": 0.5
-      },
-      "B": {
-        "@2": 0.5,
-        "@5": 0.5,
-        "@10": 0.5
-      },
-      "D": {
-        "@2": 0.5,
-        "@5": 0.5,
-        "@10": 0.5
-      },
-      "E": {
-        "@2": 0.5,
-        "@5": 0.5,
-        "@10": 0.5
-      },
-      "C": {
-        "@2": 0.5,
-        "@5": 0.5,
-        "@10": 0.5
-      }
-    },
-    {
-      "qid": "5a8c9fc2554299653c1aa0d4",
-      "n_seeds": 2,
-      "fallback": false,
-      "active": true,
-      "hop": null,
-      "t_solve": 0.0276,
-      "t_multi": 0.1174,
-      "naive": {
-        "@2": 0.5,
-        "@5": 0.5,
-        "@10": 0.5
-      },
-      "A": {
-        "@2": 0.5,
-        "@5": 0.5,
-        "@10": 0.5
-      },
-      "G": {
-        "@2": 0.5,
-        "@5": 0.5,
-        "@10": 0.5
-      },
-      "B": {
-        "@2": 0.5,
-        "@5": 0.5,
-        "@10": 0.5
-      },
-      "D": {
-        "@2": 0.5,
-        "@5": 0.5,
-        "@10": 0.5
-      },
-      "E": {
-        "@2": 0.5,
-        "@5": 0.5,
-        "@10": 0.5
-      },
-      "C": {
-        "@2": 0.5,
-        "@5": 0.5,
-        "@10": 0.5
-      }
-    },
-    {
-      "qid": "5a7cd28c554299452d57ba80",
-      "n_seeds": 1,
-      "fallback": false,
-      "active": false,
-      "hop": null,
-      "t_solve": 0.0315,
-      "t_multi": 0.0,
-      "naive": {
-        "@2": 0.5,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "A": {
-        "@2": 0.0,
-        "@5": 0.5,
-        "@10": 1.0
-      },
-      "G": {
-        "@2": 0.0,
-        "@5": 0.5,
-        "@10": 1.0
-      },
-      "B": {
-        "@2": 0.0,
-        "@5": 0.5,
-        "@10": 1.0
-      },
-      "D": {
-        "@2": 0.0,
-        "@5": 0.5,
-        "@10": 1.0
-      },
-      "E": {
-        "@2": 0.0,
-        "@5": 0.0,
-        "@10": 1.0
-      },
-      "C": {
-        "@2": 0.0,
-        "@5": 0.5,
-        "@10": 1.0
-      }
-    },
-    {
-      "qid": "5aba71b155429955dce3ee2a",
-      "n_seeds": 4,
-      "fallback": false,
-      "active": true,
-      "hop": null,
-      "t_solve": 0.0299,
-      "t_multi": 0.1423,
-      "naive": {
-        "@2": 0.5,
-        "@5": 0.5,
-        "@10": 0.5
-      },
-      "A": {
-        "@2": 1.0,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "G": {
-        "@2": 0.5,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "B": {
-        "@2": 0.5,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "D": {
-        "@2": 0.5,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "E": {
-        "@2": 0.5,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "C": {
-        "@2": 0.5,
-        "@5": 0.5,
-        "@10": 0.5
-      }
-    },
-    {
-      "qid": "5a74bdce55429929fddd84e1",
-      "n_seeds": 2,
-      "fallback": false,
-      "active": true,
-      "hop": null,
-      "t_solve": 0.0292,
-      "t_multi": 0.1161,
-      "naive": {
-        "@2": 0.0,
-        "@5": 0.0,
-        "@10": 0.0
-      },
-      "A": {
-        "@2": 0.0,
-        "@5": 0.0,
-        "@10": 0.0
-      },
-      "G": {
-        "@2": 0.0,
-        "@5": 0.0,
-        "@10": 0.0
-      },
-      "B": {
-        "@2": 0.0,
-        "@5": 0.0,
-        "@10": 0.0
-      },
-      "D": {
-        "@2": 0.0,
-        "@5": 0.0,
-        "@10": 0.0
-      },
-      "E": {
-        "@2": 0.0,
-        "@5": 0.0,
-        "@10": 0.0
-      },
-      "C": {
-        "@2": 0.0,
-        "@5": 0.0,
-        "@10": 0.0
-      }
-    },
-    {
-      "qid": "5ae3eabc5542995dadf2424f",
-      "n_seeds": 3,
-      "fallback": false,
-      "active": true,
-      "hop": null,
-      "t_solve": 0.0264,
-      "t_multi": 0.1303,
-      "naive": {
-        "@2": 0.5,
-        "@5": 0.5,
-        "@10": 0.5
-      },
-      "A": {
-        "@2": 0.5,
-        "@5": 0.5,
-        "@10": 0.5
-      },
-      "G": {
-        "@2": 0.5,
-        "@5": 0.5,
-        "@10": 0.5
-      },
-      "B": {
-        "@2": 0.5,
-        "@5": 0.5,
-        "@10": 0.5
-      },
-      "D": {
-        "@2": 0.5,
-        "@5": 0.5,
-        "@10": 0.5
-      },
-      "E": {
-        "@2": 0.5,
-        "@5": 0.5,
-        "@10": 0.5
-      },
-      "C": {
-        "@2": 0.5,
-        "@5": 0.5,
-        "@10": 0.5
-      }
-    },
-    {
-      "qid": "5addb0335542995b365fab5e",
-      "n_seeds": 2,
-      "fallback": false,
-      "active": true,
-      "hop": null,
-      "t_solve": 0.0296,
-      "t_multi": 0.131,
-      "naive": {
-        "@2": 1.0,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "A": {
-        "@2": 0.5,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "G": {
-        "@2": 0.5,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "B": {
-        "@2": 0.5,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "D": {
-        "@2": 0.5,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "E": {
-        "@2": 0.5,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "C": {
-        "@2": 0.5,
-        "@5": 1.0,
-        "@10": 1.0
-      }
-    },
-    {
-      "qid": "5a7b3b4f5542992d025e67ac",
-      "n_seeds": 1,
-      "fallback": false,
-      "active": false,
-      "hop": null,
-      "t_solve": 0.0319,
-      "t_multi": 0.0,
-      "naive": {
-        "@2": 0.0,
-        "@5": 0.5,
-        "@10": 1.0
-      },
-      "A": {
-        "@2": 1.0,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "G": {
-        "@2": 1.0,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "B": {
-        "@2": 1.0,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "D": {
-        "@2": 1.0,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "E": {
-        "@2": 1.0,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "C": {
-        "@2": 1.0,
-        "@5": 1.0,
-        "@10": 1.0
-      }
-    },
-    {
-      "qid": "5ab8f57b5542991b5579f097",
-      "n_seeds": 2,
-      "fallback": false,
-      "active": true,
-      "hop": null,
-      "t_solve": 0.0299,
-      "t_multi": 0.1157,
-      "naive": {
-        "@2": 0.5,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "A": {
-        "@2": 0.5,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "G": {
-        "@2": 0.5,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "B": {
-        "@2": 0.5,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "D": {
-        "@2": 0.5,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "E": {
-        "@2": 0.5,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "C": {
-        "@2": 0.5,
-        "@5": 1.0,
-        "@10": 1.0
-      }
-    },
-    {
-      "qid": "5a74872655429979e2882978",
-      "n_seeds": 1,
-      "fallback": false,
-      "active": false,
-      "hop": null,
-      "t_solve": 0.0269,
-      "t_multi": 0.0,
-      "naive": {
-        "@2": 0.5,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "A": {
-        "@2": 0.5,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "G": {
-        "@2": 0.5,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "B": {
-        "@2": 0.5,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "D": {
-        "@2": 0.5,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "E": {
-        "@2": 0.5,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "C": {
-        "@2": 0.5,
-        "@5": 1.0,
-        "@10": 1.0
-      }
-    },
-    {
-      "qid": "5ae532365542992663a4f150",
-      "n_seeds": 2,
-      "fallback": false,
-      "active": true,
-      "hop": null,
-      "t_solve": 0.0273,
-      "t_multi": 0.1188,
-      "naive": {
-        "@2": 0.5,
-        "@5": 0.5,
-        "@10": 0.5
-      },
-      "A": {
-        "@2": 0.5,
-        "@5": 0.5,
-        "@10": 0.5
-      },
-      "G": {
-        "@2": 0.5,
-        "@5": 0.5,
-        "@10": 0.5
-      },
-      "B": {
-        "@2": 0.5,
-        "@5": 0.5,
-        "@10": 0.5
-      },
-      "D": {
-        "@2": 0.5,
-        "@5": 0.5,
-        "@10": 0.5
-      },
-      "E": {
-        "@2": 0.5,
-        "@5": 0.5,
-        "@10": 0.5
-      },
-      "C": {
-        "@2": 0.5,
-        "@5": 0.5,
-        "@10": 0.5
-      }
-    },
-    {
-      "qid": "5ab9c292554299131ca423f5",
-      "n_seeds": 3,
-      "fallback": false,
-      "active": true,
-      "hop": null,
-      "t_solve": 0.0263,
-      "t_multi": 0.1295,
-      "naive": {
-        "@2": 1.0,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "A": {
-        "@2": 1.0,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "G": {
-        "@2": 1.0,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "B": {
-        "@2": 1.0,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "D": {
-        "@2": 1.0,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "E": {
-        "@2": 1.0,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "C": {
-        "@2": 1.0,
-        "@5": 1.0,
-        "@10": 1.0
-      }
-    },
-    {
-      "qid": "5abd2eab5542992ac4f38210",
-      "n_seeds": 1,
-      "fallback": false,
-      "active": false,
-      "hop": null,
-      "t_solve": 0.0272,
-      "t_multi": 0.0,
-      "naive": {
-        "@2": 0.5,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "A": {
-        "@2": 0.5,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "G": {
-        "@2": 0.5,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "B": {
-        "@2": 0.5,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "D": {
-        "@2": 0.5,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "E": {
-        "@2": 0.5,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "C": {
-        "@2": 0.5,
-        "@5": 1.0,
-        "@10": 1.0
-      }
-    },
-    {
-      "qid": "5a79332555429907847277e7",
-      "n_seeds": 2,
-      "fallback": false,
-      "active": true,
-      "hop": null,
-      "t_solve": 0.0286,
-      "t_multi": 0.1165,
-      "naive": {
-        "@2": 0.5,
-        "@5": 0.5,
-        "@10": 1.0
-      },
-      "A": {
-        "@2": 0.5,
-        "@5": 0.5,
-        "@10": 0.5
-      },
-      "G": {
-        "@2": 0.5,
-        "@5": 0.5,
-        "@10": 0.5
-      },
-      "B": {
-        "@2": 0.5,
-        "@5": 0.5,
-        "@10": 0.5
-      },
-      "D": {
-        "@2": 0.5,
-        "@5": 0.5,
-        "@10": 0.5
-      },
-      "E": {
-        "@2": 0.5,
-        "@5": 0.5,
-        "@10": 0.5
-      },
-      "C": {
-        "@2": 0.5,
-        "@5": 0.5,
-        "@10": 1.0
-      }
-    },
-    {
-      "qid": "5ab5467e554299494045ef5e",
-      "n_seeds": 1,
-      "fallback": false,
-      "active": false,
-      "hop": null,
-      "t_solve": 0.0254,
-      "t_multi": 0.0,
-      "naive": {
-        "@2": 0.5,
-        "@5": 0.5,
-        "@10": 0.5
-      },
-      "A": {
-        "@2": 0.5,
-        "@5": 0.5,
-        "@10": 0.5
-      },
-      "G": {
-        "@2": 0.5,
-        "@5": 0.5,
-        "@10": 0.5
-      },
-      "B": {
-        "@2": 0.0,
-        "@5": 0.0,
-        "@10": 0.0
-      },
-      "D": {
-        "@2": 0.5,
-        "@5": 0.5,
-        "@10": 0.5
-      },
-      "E": {
-        "@2": 0.0,
-        "@5": 0.5,
-        "@10": 0.5
-      },
-      "C": {
-        "@2": 0.5,
-        "@5": 0.5,
-        "@10": 0.5
-      }
-    },
-    {
-      "qid": "5abad3445542996cc5e49ea0",
-      "n_seeds": 2,
-      "fallback": false,
-      "active": true,
-      "hop": null,
-      "t_solve": 0.0342,
-      "t_multi": 0.1165,
-      "naive": {
-        "@2": 1.0,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "A": {
-        "@2": 0.0,
-        "@5": 0.5,
-        "@10": 1.0
-      },
-      "G": {
-        "@2": 0.5,
-        "@5": 0.5,
-        "@10": 1.0
-      },
-      "B": {
-        "@2": 0.5,
-        "@5": 0.5,
-        "@10": 1.0
-      },
-      "D": {
-        "@2": 0.5,
-        "@5": 0.5,
-        "@10": 1.0
-      },
-      "E": {
-        "@2": 0.0,
-        "@5": 0.5,
-        "@10": 1.0
-      },
-      "C": {
-        "@2": 0.5,
-        "@5": 0.5,
-        "@10": 1.0
-      }
-    },
-    {
-      "qid": "5ab9c3e1554299753720f852",
-      "n_seeds": 2,
-      "fallback": false,
-      "active": true,
-      "hop": null,
-      "t_solve": 0.0259,
-      "t_multi": 0.1148,
-      "naive": {
-        "@2": 0.5,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "A": {
-        "@2": 0.5,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "G": {
-        "@2": 0.5,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "B": {
-        "@2": 0.5,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "D": {
-        "@2": 0.5,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "E": {
-        "@2": 0.5,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "C": {
-        "@2": 0.5,
-        "@5": 1.0,
-        "@10": 1.0
-      }
-    },
-    {
-      "qid": "5ae45cba5542991a06ce9a4a",
-      "n_seeds": 3,
-      "fallback": false,
-      "active": true,
-      "hop": null,
-      "t_solve": 0.0313,
-      "t_multi": 0.1276,
-      "naive": {
-        "@2": 0.5,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "A": {
-        "@2": 1.0,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "G": {
-        "@2": 1.0,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "B": {
-        "@2": 1.0,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "D": {
-        "@2": 1.0,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "E": {
-        "@2": 1.0,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "C": {
-        "@2": 1.0,
-        "@5": 1.0,
-        "@10": 1.0
-      }
-    },
-    {
-      "qid": "5a7a2ec35542990783324eae",
-      "n_seeds": 2,
-      "fallback": false,
-      "active": true,
-      "hop": null,
-      "t_solve": 0.029,
-      "t_multi": 0.1184,
-      "naive": {
-        "@2": 1.0,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "A": {
-        "@2": 1.0,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "G": {
-        "@2": 1.0,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "B": {
-        "@2": 1.0,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "D": {
-        "@2": 1.0,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "E": {
-        "@2": 1.0,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "C": {
-        "@2": 1.0,
-        "@5": 1.0,
-        "@10": 1.0
-      }
-    },
-    {
-      "qid": "5a83041355429966c78a6ae8",
-      "n_seeds": 2,
-      "fallback": false,
-      "active": true,
-      "hop": null,
-      "t_solve": 0.0327,
-      "t_multi": 0.1156,
-      "naive": {
-        "@2": 1.0,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "A": {
-        "@2": 0.5,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "G": {
-        "@2": 1.0,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "B": {
-        "@2": 1.0,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "D": {
-        "@2": 1.0,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "E": {
-        "@2": 0.5,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "C": {
-        "@2": 1.0,
-        "@5": 1.0,
-        "@10": 1.0
-      }
-    },
-    {
-      "qid": "5a8318955542990548d0b177",
-      "n_seeds": 3,
-      "fallback": false,
-      "active": true,
-      "hop": null,
-      "t_solve": 0.0353,
-      "t_multi": 0.1306,
-      "naive": {
-        "@2": 0.5,
-        "@5": 0.5,
-        "@10": 1.0
-      },
-      "A": {
-        "@2": 1.0,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "G": {
-        "@2": 1.0,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "B": {
-        "@2": 1.0,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "D": {
-        "@2": 1.0,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "E": {
-        "@2": 1.0,
-        "@5": 1.0,
-        "@10": 1.0
-      },
-      "C": {
-        "@2": 1.0,
-        "@5": 1.0,
-        "@10": 1.0
-      }
-    },
-    {
-      "qid": "5abf64265542997ec76fd3eb",
       "n_seeds": 1,
       "fallback": false,
       "active": false,
@@ -15464,12 +14547,936 @@
       }
     },
     {
+      "qid": "5a8c9fc2554299653c1aa0d4",
+      "n_seeds": 2,
+      "fallback": false,
+      "active": true,
+      "hop": null,
+      "t_solve": 0.0261,
+      "t_multi": 0.1122,
+      "naive": {
+        "@2": 0.5,
+        "@5": 0.5,
+        "@10": 0.5
+      },
+      "A": {
+        "@2": 0.5,
+        "@5": 0.5,
+        "@10": 0.5
+      },
+      "G": {
+        "@2": 0.5,
+        "@5": 0.5,
+        "@10": 0.5
+      },
+      "B": {
+        "@2": 0.5,
+        "@5": 0.5,
+        "@10": 0.5
+      },
+      "D": {
+        "@2": 0.5,
+        "@5": 0.5,
+        "@10": 0.5
+      },
+      "E": {
+        "@2": 0.5,
+        "@5": 0.5,
+        "@10": 0.5
+      },
+      "C": {
+        "@2": 0.5,
+        "@5": 0.5,
+        "@10": 0.5
+      }
+    },
+    {
+      "qid": "5a7cd28c554299452d57ba80",
+      "n_seeds": 1,
+      "fallback": false,
+      "active": false,
+      "hop": null,
+      "t_solve": 0.026,
+      "t_multi": 0.0,
+      "naive": {
+        "@2": 0.5,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "A": {
+        "@2": 0.0,
+        "@5": 0.5,
+        "@10": 1.0
+      },
+      "G": {
+        "@2": 0.0,
+        "@5": 0.5,
+        "@10": 1.0
+      },
+      "B": {
+        "@2": 0.0,
+        "@5": 0.5,
+        "@10": 1.0
+      },
+      "D": {
+        "@2": 0.0,
+        "@5": 0.5,
+        "@10": 1.0
+      },
+      "E": {
+        "@2": 0.0,
+        "@5": 0.0,
+        "@10": 1.0
+      },
+      "C": {
+        "@2": 0.0,
+        "@5": 0.5,
+        "@10": 1.0
+      }
+    },
+    {
+      "qid": "5aba71b155429955dce3ee2a",
+      "n_seeds": 4,
+      "fallback": false,
+      "active": true,
+      "hop": null,
+      "t_solve": 0.0258,
+      "t_multi": 0.1337,
+      "naive": {
+        "@2": 0.5,
+        "@5": 0.5,
+        "@10": 0.5
+      },
+      "A": {
+        "@2": 1.0,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "G": {
+        "@2": 0.5,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "B": {
+        "@2": 0.5,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "D": {
+        "@2": 0.5,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "E": {
+        "@2": 0.5,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "C": {
+        "@2": 0.5,
+        "@5": 0.5,
+        "@10": 0.5
+      }
+    },
+    {
+      "qid": "5a74bdce55429929fddd84e1",
+      "n_seeds": 2,
+      "fallback": false,
+      "active": true,
+      "hop": null,
+      "t_solve": 0.0259,
+      "t_multi": 0.1124,
+      "naive": {
+        "@2": 0.0,
+        "@5": 0.0,
+        "@10": 0.0
+      },
+      "A": {
+        "@2": 0.0,
+        "@5": 0.0,
+        "@10": 0.0
+      },
+      "G": {
+        "@2": 0.0,
+        "@5": 0.0,
+        "@10": 0.0
+      },
+      "B": {
+        "@2": 0.0,
+        "@5": 0.0,
+        "@10": 0.0
+      },
+      "D": {
+        "@2": 0.0,
+        "@5": 0.0,
+        "@10": 0.0
+      },
+      "E": {
+        "@2": 0.0,
+        "@5": 0.0,
+        "@10": 0.0
+      },
+      "C": {
+        "@2": 0.0,
+        "@5": 0.0,
+        "@10": 0.0
+      }
+    },
+    {
+      "qid": "5ae3eabc5542995dadf2424f",
+      "n_seeds": 3,
+      "fallback": false,
+      "active": true,
+      "hop": null,
+      "t_solve": 0.0261,
+      "t_multi": 0.1201,
+      "naive": {
+        "@2": 0.5,
+        "@5": 0.5,
+        "@10": 0.5
+      },
+      "A": {
+        "@2": 0.5,
+        "@5": 0.5,
+        "@10": 0.5
+      },
+      "G": {
+        "@2": 0.5,
+        "@5": 0.5,
+        "@10": 0.5
+      },
+      "B": {
+        "@2": 0.5,
+        "@5": 0.5,
+        "@10": 0.5
+      },
+      "D": {
+        "@2": 0.5,
+        "@5": 0.5,
+        "@10": 0.5
+      },
+      "E": {
+        "@2": 0.5,
+        "@5": 0.5,
+        "@10": 0.5
+      },
+      "C": {
+        "@2": 0.5,
+        "@5": 0.5,
+        "@10": 0.5
+      }
+    },
+    {
+      "qid": "5addb0335542995b365fab5e",
+      "n_seeds": 2,
+      "fallback": false,
+      "active": true,
+      "hop": null,
+      "t_solve": 0.0261,
+      "t_multi": 0.1122,
+      "naive": {
+        "@2": 1.0,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "A": {
+        "@2": 0.5,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "G": {
+        "@2": 0.5,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "B": {
+        "@2": 0.5,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "D": {
+        "@2": 0.5,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "E": {
+        "@2": 0.5,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "C": {
+        "@2": 0.5,
+        "@5": 1.0,
+        "@10": 1.0
+      }
+    },
+    {
+      "qid": "5a7b3b4f5542992d025e67ac",
+      "n_seeds": 1,
+      "fallback": false,
+      "active": false,
+      "hop": null,
+      "t_solve": 0.0259,
+      "t_multi": 0.0,
+      "naive": {
+        "@2": 0.0,
+        "@5": 0.5,
+        "@10": 1.0
+      },
+      "A": {
+        "@2": 1.0,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "G": {
+        "@2": 1.0,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "B": {
+        "@2": 1.0,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "D": {
+        "@2": 1.0,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "E": {
+        "@2": 1.0,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "C": {
+        "@2": 1.0,
+        "@5": 1.0,
+        "@10": 1.0
+      }
+    },
+    {
+      "qid": "5ab8f57b5542991b5579f097",
+      "n_seeds": 2,
+      "fallback": false,
+      "active": true,
+      "hop": null,
+      "t_solve": 0.0262,
+      "t_multi": 0.1123,
+      "naive": {
+        "@2": 0.5,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "A": {
+        "@2": 0.5,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "G": {
+        "@2": 0.5,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "B": {
+        "@2": 0.5,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "D": {
+        "@2": 0.5,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "E": {
+        "@2": 0.5,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "C": {
+        "@2": 0.5,
+        "@5": 1.0,
+        "@10": 1.0
+      }
+    },
+    {
+      "qid": "5a74872655429979e2882978",
+      "n_seeds": 1,
+      "fallback": false,
+      "active": false,
+      "hop": null,
+      "t_solve": 0.0261,
+      "t_multi": 0.0,
+      "naive": {
+        "@2": 0.5,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "A": {
+        "@2": 0.5,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "G": {
+        "@2": 0.5,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "B": {
+        "@2": 0.5,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "D": {
+        "@2": 0.5,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "E": {
+        "@2": 0.5,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "C": {
+        "@2": 0.5,
+        "@5": 1.0,
+        "@10": 1.0
+      }
+    },
+    {
+      "qid": "5ae532365542992663a4f150",
+      "n_seeds": 2,
+      "fallback": false,
+      "active": true,
+      "hop": null,
+      "t_solve": 0.0261,
+      "t_multi": 0.1121,
+      "naive": {
+        "@2": 0.5,
+        "@5": 0.5,
+        "@10": 0.5
+      },
+      "A": {
+        "@2": 0.5,
+        "@5": 0.5,
+        "@10": 0.5
+      },
+      "G": {
+        "@2": 0.5,
+        "@5": 0.5,
+        "@10": 0.5
+      },
+      "B": {
+        "@2": 0.5,
+        "@5": 0.5,
+        "@10": 0.5
+      },
+      "D": {
+        "@2": 0.5,
+        "@5": 0.5,
+        "@10": 0.5
+      },
+      "E": {
+        "@2": 0.5,
+        "@5": 0.5,
+        "@10": 0.5
+      },
+      "C": {
+        "@2": 0.5,
+        "@5": 0.5,
+        "@10": 0.5
+      }
+    },
+    {
+      "qid": "5ab9c292554299131ca423f5",
+      "n_seeds": 3,
+      "fallback": false,
+      "active": true,
+      "hop": null,
+      "t_solve": 0.026,
+      "t_multi": 0.1201,
+      "naive": {
+        "@2": 1.0,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "A": {
+        "@2": 1.0,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "G": {
+        "@2": 1.0,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "B": {
+        "@2": 1.0,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "D": {
+        "@2": 1.0,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "E": {
+        "@2": 1.0,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "C": {
+        "@2": 1.0,
+        "@5": 1.0,
+        "@10": 1.0
+      }
+    },
+    {
+      "qid": "5abd2eab5542992ac4f38210",
+      "n_seeds": 1,
+      "fallback": false,
+      "active": false,
+      "hop": null,
+      "t_solve": 0.026,
+      "t_multi": 0.0,
+      "naive": {
+        "@2": 0.5,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "A": {
+        "@2": 0.5,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "G": {
+        "@2": 0.5,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "B": {
+        "@2": 0.5,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "D": {
+        "@2": 0.5,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "E": {
+        "@2": 0.5,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "C": {
+        "@2": 0.5,
+        "@5": 1.0,
+        "@10": 1.0
+      }
+    },
+    {
+      "qid": "5a79332555429907847277e7",
+      "n_seeds": 2,
+      "fallback": false,
+      "active": true,
+      "hop": null,
+      "t_solve": 0.026,
+      "t_multi": 0.1125,
+      "naive": {
+        "@2": 0.5,
+        "@5": 0.5,
+        "@10": 1.0
+      },
+      "A": {
+        "@2": 0.5,
+        "@5": 0.5,
+        "@10": 0.5
+      },
+      "G": {
+        "@2": 0.5,
+        "@5": 0.5,
+        "@10": 0.5
+      },
+      "B": {
+        "@2": 0.5,
+        "@5": 0.5,
+        "@10": 0.5
+      },
+      "D": {
+        "@2": 0.5,
+        "@5": 0.5,
+        "@10": 0.5
+      },
+      "E": {
+        "@2": 0.5,
+        "@5": 0.5,
+        "@10": 0.5
+      },
+      "C": {
+        "@2": 0.5,
+        "@5": 0.5,
+        "@10": 1.0
+      }
+    },
+    {
+      "qid": "5ab5467e554299494045ef5e",
+      "n_seeds": 1,
+      "fallback": false,
+      "active": false,
+      "hop": null,
+      "t_solve": 0.0252,
+      "t_multi": 0.0,
+      "naive": {
+        "@2": 0.5,
+        "@5": 0.5,
+        "@10": 0.5
+      },
+      "A": {
+        "@2": 0.5,
+        "@5": 0.5,
+        "@10": 0.5
+      },
+      "G": {
+        "@2": 0.5,
+        "@5": 0.5,
+        "@10": 0.5
+      },
+      "B": {
+        "@2": 0.0,
+        "@5": 0.0,
+        "@10": 0.0
+      },
+      "D": {
+        "@2": 0.5,
+        "@5": 0.5,
+        "@10": 0.5
+      },
+      "E": {
+        "@2": 0.0,
+        "@5": 0.5,
+        "@10": 0.5
+      },
+      "C": {
+        "@2": 0.5,
+        "@5": 0.5,
+        "@10": 0.5
+      }
+    },
+    {
+      "qid": "5abad3445542996cc5e49ea0",
+      "n_seeds": 2,
+      "fallback": false,
+      "active": true,
+      "hop": null,
+      "t_solve": 0.026,
+      "t_multi": 0.1128,
+      "naive": {
+        "@2": 1.0,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "A": {
+        "@2": 0.0,
+        "@5": 0.5,
+        "@10": 1.0
+      },
+      "G": {
+        "@2": 0.5,
+        "@5": 0.5,
+        "@10": 1.0
+      },
+      "B": {
+        "@2": 0.5,
+        "@5": 0.5,
+        "@10": 1.0
+      },
+      "D": {
+        "@2": 0.5,
+        "@5": 0.5,
+        "@10": 1.0
+      },
+      "E": {
+        "@2": 0.0,
+        "@5": 0.5,
+        "@10": 1.0
+      },
+      "C": {
+        "@2": 0.5,
+        "@5": 0.5,
+        "@10": 1.0
+      }
+    },
+    {
+      "qid": "5ab9c3e1554299753720f852",
+      "n_seeds": 2,
+      "fallback": false,
+      "active": true,
+      "hop": null,
+      "t_solve": 0.0275,
+      "t_multi": 0.1139,
+      "naive": {
+        "@2": 0.5,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "A": {
+        "@2": 0.5,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "G": {
+        "@2": 0.5,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "B": {
+        "@2": 0.5,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "D": {
+        "@2": 0.5,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "E": {
+        "@2": 0.5,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "C": {
+        "@2": 0.5,
+        "@5": 1.0,
+        "@10": 1.0
+      }
+    },
+    {
+      "qid": "5ae45cba5542991a06ce9a4a",
+      "n_seeds": 3,
+      "fallback": false,
+      "active": true,
+      "hop": null,
+      "t_solve": 0.027,
+      "t_multi": 0.1204,
+      "naive": {
+        "@2": 0.5,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "A": {
+        "@2": 1.0,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "G": {
+        "@2": 1.0,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "B": {
+        "@2": 1.0,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "D": {
+        "@2": 1.0,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "E": {
+        "@2": 1.0,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "C": {
+        "@2": 1.0,
+        "@5": 1.0,
+        "@10": 1.0
+      }
+    },
+    {
+      "qid": "5a7a2ec35542990783324eae",
+      "n_seeds": 2,
+      "fallback": false,
+      "active": true,
+      "hop": null,
+      "t_solve": 0.026,
+      "t_multi": 0.1128,
+      "naive": {
+        "@2": 1.0,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "A": {
+        "@2": 1.0,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "G": {
+        "@2": 1.0,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "B": {
+        "@2": 1.0,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "D": {
+        "@2": 1.0,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "E": {
+        "@2": 1.0,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "C": {
+        "@2": 1.0,
+        "@5": 1.0,
+        "@10": 1.0
+      }
+    },
+    {
+      "qid": "5a83041355429966c78a6ae8",
+      "n_seeds": 2,
+      "fallback": false,
+      "active": true,
+      "hop": null,
+      "t_solve": 0.0259,
+      "t_multi": 0.1121,
+      "naive": {
+        "@2": 1.0,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "A": {
+        "@2": 0.5,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "G": {
+        "@2": 1.0,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "B": {
+        "@2": 1.0,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "D": {
+        "@2": 1.0,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "E": {
+        "@2": 0.5,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "C": {
+        "@2": 1.0,
+        "@5": 1.0,
+        "@10": 1.0
+      }
+    },
+    {
+      "qid": "5a8318955542990548d0b177",
+      "n_seeds": 3,
+      "fallback": false,
+      "active": true,
+      "hop": null,
+      "t_solve": 0.0259,
+      "t_multi": 0.1207,
+      "naive": {
+        "@2": 0.5,
+        "@5": 0.5,
+        "@10": 1.0
+      },
+      "A": {
+        "@2": 1.0,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "G": {
+        "@2": 1.0,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "B": {
+        "@2": 1.0,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "D": {
+        "@2": 1.0,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "E": {
+        "@2": 1.0,
+        "@5": 1.0,
+        "@10": 1.0
+      },
+      "C": {
+        "@2": 1.0,
+        "@5": 1.0,
+        "@10": 1.0
+      }
+    },
+    {
+      "qid": "5abf64265542997ec76fd3eb",
+      "n_seeds": 1,
+      "fallback": false,
+      "active": false,
+      "hop": null,
+      "t_solve": 0.0296,
+      "t_multi": 0.0,
+      "naive": {
+        "@2": 0.5,
+        "@5": 0.5,
+        "@10": 0.5
+      },
+      "A": {
+        "@2": 0.5,
+        "@5": 0.5,
+        "@10": 0.5
+      },
+      "G": {
+        "@2": 0.5,
+        "@5": 0.5,
+        "@10": 0.5
+      },
+      "B": {
+        "@2": 0.5,
+        "@5": 0.5,
+        "@10": 0.5
+      },
+      "D": {
+        "@2": 0.5,
+        "@5": 0.5,
+        "@10": 0.5
+      },
+      "E": {
+        "@2": 0.5,
+        "@5": 0.5,
+        "@10": 0.5
+      },
+      "C": {
+        "@2": 0.5,
+        "@5": 0.5,
+        "@10": 0.5
+      }
+    },
+    {
       "qid": "5a7662745542992db9473786",
       "n_seeds": 1,
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0263,
+      "t_solve": 0.0262,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -15513,7 +15520,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0314,
+      "t_solve": 0.0268,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -15557,7 +15564,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0266,
+      "t_solve": 0.0262,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -15601,8 +15608,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0356,
-      "t_multi": 0.1384,
+      "t_solve": 0.0269,
+      "t_multi": 0.1156,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -15645,8 +15652,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0325,
-      "t_multi": 0.1209,
+      "t_solve": 0.0259,
+      "t_multi": 0.1124,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -15689,8 +15696,8 @@
       "fallback": true,
       "active": true,
       "hop": null,
-      "t_solve": 0.0311,
-      "t_multi": 0.1381,
+      "t_solve": 0.026,
+      "t_multi": 0.1333,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -15733,8 +15740,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0265,
-      "t_multi": 0.1226,
+      "t_solve": 0.026,
+      "t_multi": 0.1127,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -15777,7 +15784,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0285,
+      "t_solve": 0.026,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.0,
@@ -15821,8 +15828,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0257,
-      "t_multi": 0.1308,
+      "t_solve": 0.0251,
+      "t_multi": 0.1229,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -15865,8 +15872,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0266,
-      "t_multi": 0.1186,
+      "t_solve": 0.0256,
+      "t_multi": 0.1198,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -15909,8 +15916,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0341,
-      "t_multi": 0.1147,
+      "t_solve": 0.0259,
+      "t_multi": 0.1125,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -15953,8 +15960,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0266,
-      "t_multi": 0.117,
+      "t_solve": 0.026,
+      "t_multi": 0.1122,
       "naive": {
         "@2": 0.0,
         "@5": 0.0,
@@ -15997,8 +16004,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0271,
-      "t_multi": 0.1245,
+      "t_solve": 0.026,
+      "t_multi": 0.1201,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -16041,8 +16048,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0275,
-      "t_multi": 0.1297,
+      "t_solve": 0.0259,
+      "t_multi": 0.1201,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -16085,7 +16092,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0254,
+      "t_solve": 0.025,
       "t_multi": 0.0,
       "naive": {
         "@2": 1.0,
@@ -16129,7 +16136,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0264,
+      "t_solve": 0.0284,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -16173,8 +16180,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0263,
-      "t_multi": 0.1356,
+      "t_solve": 0.0278,
+      "t_multi": 0.1354,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -16217,8 +16224,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0264,
-      "t_multi": 0.1136,
+      "t_solve": 0.026,
+      "t_multi": 0.1132,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -16261,7 +16268,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0267,
+      "t_solve": 0.0285,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -16305,8 +16312,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0288,
-      "t_multi": 0.1297,
+      "t_solve": 0.0306,
+      "t_multi": 0.1236,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -16349,8 +16356,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0277,
-      "t_multi": 0.1178,
+      "t_solve": 0.026,
+      "t_multi": 0.1124,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -16393,8 +16400,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0265,
-      "t_multi": 0.1142,
+      "t_solve": 0.0259,
+      "t_multi": 0.1127,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -16437,8 +16444,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0273,
-      "t_multi": 0.1186,
+      "t_solve": 0.0259,
+      "t_multi": 0.1122,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -16481,7 +16488,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0263,
+      "t_solve": 0.0261,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.0,
@@ -16525,8 +16532,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0264,
-      "t_multi": 0.114,
+      "t_solve": 0.0307,
+      "t_multi": 0.1122,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -16569,7 +16576,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0264,
+      "t_solve": 0.026,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -16613,7 +16620,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0272,
+      "t_solve": 0.0259,
       "t_multi": 0.0,
       "naive": {
         "@2": 1.0,
@@ -16657,7 +16664,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0319,
+      "t_solve": 0.0261,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -16701,8 +16708,8 @@
       "fallback": true,
       "active": true,
       "hop": null,
-      "t_solve": 0.0263,
-      "t_multi": 0.1384,
+      "t_solve": 0.0261,
+      "t_multi": 0.1347,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -16745,8 +16752,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0259,
-      "t_multi": 0.1162,
+      "t_solve": 0.0255,
+      "t_multi": 0.1101,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -16789,7 +16796,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0262,
+      "t_solve": 0.026,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -16833,7 +16840,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0262,
+      "t_solve": 0.026,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -16877,7 +16884,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0262,
+      "t_solve": 0.0261,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -16921,7 +16928,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0276,
+      "t_solve": 0.0259,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -16965,8 +16972,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0265,
-      "t_multi": 0.1277,
+      "t_solve": 0.0259,
+      "t_multi": 0.1229,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -17009,8 +17016,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0264,
-      "t_multi": 0.1167,
+      "t_solve": 0.0261,
+      "t_multi": 0.1122,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -17053,8 +17060,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0265,
-      "t_multi": 0.1267,
+      "t_solve": 0.0295,
+      "t_multi": 0.1274,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -17097,7 +17104,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0263,
+      "t_solve": 0.0262,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -17141,7 +17148,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0262,
+      "t_solve": 0.0273,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -17185,7 +17192,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0266,
+      "t_solve": 0.0282,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -17229,8 +17236,8 @@
       "fallback": true,
       "active": true,
       "hop": null,
-      "t_solve": 0.0257,
-      "t_multi": 0.1427,
+      "t_solve": 0.0268,
+      "t_multi": 0.1416,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -17273,8 +17280,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0262,
-      "t_multi": 0.1148,
+      "t_solve": 0.0261,
+      "t_multi": 0.1151,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -17317,8 +17324,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.034,
-      "t_multi": 0.1139,
+      "t_solve": 0.026,
+      "t_multi": 0.1124,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -17361,8 +17368,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0263,
-      "t_multi": 0.1241,
+      "t_solve": 0.0259,
+      "t_multi": 0.1202,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -17405,8 +17412,8 @@
       "fallback": true,
       "active": true,
       "hop": null,
-      "t_solve": 0.0283,
-      "t_multi": 0.139,
+      "t_solve": 0.0256,
+      "t_multi": 0.1356,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -17449,8 +17456,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0293,
-      "t_multi": 0.1271,
+      "t_solve": 0.0295,
+      "t_multi": 0.125,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -17493,7 +17500,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0262,
+      "t_solve": 0.0261,
       "t_multi": 0.0,
       "naive": {
         "@2": 1.0,
@@ -17537,7 +17544,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0293,
+      "t_solve": 0.0276,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -17581,7 +17588,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0293,
+      "t_solve": 0.0261,
       "t_multi": 0.0,
       "naive": {
         "@2": 1.0,
@@ -17625,8 +17632,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0276,
-      "t_multi": 0.109,
+      "t_solve": 0.0281,
+      "t_multi": 0.1071,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -17669,8 +17676,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0323,
-      "t_multi": 0.1156,
+      "t_solve": 0.0262,
+      "t_multi": 0.1139,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -17713,8 +17720,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0296,
-      "t_multi": 0.1281,
+      "t_solve": 0.0261,
+      "t_multi": 0.1225,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -17757,8 +17764,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0276,
-      "t_multi": 0.1194,
+      "t_solve": 0.0263,
+      "t_multi": 0.1195,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -17801,8 +17808,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0263,
-      "t_multi": 0.1169,
+      "t_solve": 0.0297,
+      "t_multi": 0.1139,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -17845,8 +17852,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0258,
-      "t_multi": 0.1168,
+      "t_solve": 0.0256,
+      "t_multi": 0.1126,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -17889,8 +17896,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0264,
-      "t_multi": 0.1271,
+      "t_solve": 0.0261,
+      "t_multi": 0.1234,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -17933,7 +17940,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0273,
+      "t_solve": 0.0268,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -17977,8 +17984,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0269,
-      "t_multi": 0.1164,
+      "t_solve": 0.0274,
+      "t_multi": 0.1122,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -18021,8 +18028,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0294,
-      "t_multi": 0.1264,
+      "t_solve": 0.026,
+      "t_multi": 0.1202,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -18065,7 +18072,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0267,
+      "t_solve": 0.026,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -18110,7 +18117,7 @@
       "active": true,
       "hop": null,
       "t_solve": 0.0265,
-      "t_multi": 0.1173,
+      "t_multi": 0.1151,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -18153,7 +18160,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0295,
+      "t_solve": 0.026,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -18197,8 +18204,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0261,
-      "t_multi": 0.1112,
+      "t_solve": 0.026,
+      "t_multi": 0.1081,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -18241,8 +18248,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0304,
-      "t_multi": 0.1173,
+      "t_solve": 0.026,
+      "t_multi": 0.1159,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -18285,7 +18292,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0267,
+      "t_solve": 0.028,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -18329,8 +18336,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0263,
-      "t_multi": 0.1155,
+      "t_solve": 0.0264,
+      "t_multi": 0.1159,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -18373,7 +18380,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0266,
+      "t_solve": 0.0271,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -18417,8 +18424,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.027,
-      "t_multi": 0.1397,
+      "t_solve": 0.0296,
+      "t_multi": 0.1338,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -18461,8 +18468,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.027,
-      "t_multi": 0.1163,
+      "t_solve": 0.0259,
+      "t_multi": 0.1121,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -18505,8 +18512,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0267,
-      "t_multi": 0.138,
+      "t_solve": 0.0305,
+      "t_multi": 0.1403,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -18549,8 +18556,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0269,
-      "t_multi": 0.1167,
+      "t_solve": 0.0261,
+      "t_multi": 0.1131,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -18593,7 +18600,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0263,
+      "t_solve": 0.0259,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -18637,8 +18644,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0253,
-      "t_multi": 0.1133,
+      "t_solve": 0.0291,
+      "t_multi": 0.1139,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -18681,7 +18688,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0264,
+      "t_solve": 0.0263,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -18725,7 +18732,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0263,
+      "t_solve": 0.0273,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -18769,8 +18776,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0262,
-      "t_multi": 0.1159,
+      "t_solve": 0.026,
+      "t_multi": 0.1151,
       "naive": {
         "@2": 0.0,
         "@5": 0.5,
@@ -18813,7 +18820,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0265,
+      "t_solve": 0.0284,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -18857,8 +18864,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0263,
-      "t_multi": 0.1169,
+      "t_solve": 0.0269,
+      "t_multi": 0.1149,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -18901,8 +18908,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0255,
-      "t_multi": 0.1147,
+      "t_solve": 0.0252,
+      "t_multi": 0.1126,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -18945,8 +18952,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0296,
-      "t_multi": 0.1252,
+      "t_solve": 0.0264,
+      "t_multi": 0.1234,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -18989,7 +18996,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0334,
+      "t_solve": 0.0267,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.0,
@@ -19033,8 +19040,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0316,
-      "t_multi": 0.1165,
+      "t_solve": 0.0261,
+      "t_multi": 0.1126,
       "naive": {
         "@2": 0.0,
         "@5": 0.0,
@@ -19077,7 +19084,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.026,
+      "t_solve": 0.0274,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -19121,7 +19128,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0295,
+      "t_solve": 0.0262,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.0,
@@ -19165,8 +19172,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0312,
-      "t_multi": 0.1174,
+      "t_solve": 0.0267,
+      "t_multi": 0.1158,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -19209,8 +19216,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0264,
-      "t_multi": 0.1188,
+      "t_solve": 0.0259,
+      "t_multi": 0.1122,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -19253,7 +19260,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.031,
+      "t_solve": 0.0261,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -19297,8 +19304,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0264,
-      "t_multi": 0.1179,
+      "t_solve": 0.026,
+      "t_multi": 0.112,
       "naive": {
         "@2": 0.0,
         "@5": 0.0,
@@ -19341,8 +19348,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0292,
-      "t_multi": 0.1132,
+      "t_solve": 0.0252,
+      "t_multi": 0.1084,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -19385,8 +19392,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0327,
-      "t_multi": 0.1161,
+      "t_solve": 0.0261,
+      "t_multi": 0.1125,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -19429,7 +19436,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0263,
+      "t_solve": 0.0259,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -19473,8 +19480,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0269,
-      "t_multi": 0.1276,
+      "t_solve": 0.0261,
+      "t_multi": 0.1201,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -19517,8 +19524,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0269,
-      "t_multi": 0.1184,
+      "t_solve": 0.0261,
+      "t_multi": 0.1152,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -19562,7 +19569,7 @@
       "active": true,
       "hop": null,
       "t_solve": 0.0286,
-      "t_multi": 0.1152,
+      "t_multi": 0.1156,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -19605,7 +19612,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0269,
+      "t_solve": 0.0262,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -19649,7 +19656,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0307,
+      "t_solve": 0.0266,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -19693,8 +19700,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0332,
-      "t_multi": 0.1251,
+      "t_solve": 0.0287,
+      "t_multi": 0.1288,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -19737,7 +19744,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0322,
+      "t_solve": 0.027,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -19781,7 +19788,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.026,
+      "t_solve": 0.0283,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -19825,8 +19832,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0257,
-      "t_multi": 0.1252,
+      "t_solve": 0.0259,
+      "t_multi": 0.124,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -19869,8 +19876,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0265,
-      "t_multi": 0.1241,
+      "t_solve": 0.026,
+      "t_multi": 0.1221,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -19913,7 +19920,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0261,
+      "t_solve": 0.026,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -19957,8 +19964,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0265,
-      "t_multi": 0.1283,
+      "t_solve": 0.0259,
+      "t_multi": 0.1212,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -20001,7 +20008,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0289,
+      "t_solve": 0.0261,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -20045,8 +20052,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0296,
-      "t_multi": 0.1251,
+      "t_solve": 0.026,
+      "t_multi": 0.1235,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -20089,8 +20096,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0263,
-      "t_multi": 0.1227,
+      "t_solve": 0.0261,
+      "t_multi": 0.1226,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -20133,8 +20140,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0276,
-      "t_multi": 0.1281,
+      "t_solve": 0.0287,
+      "t_multi": 0.122,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -20177,8 +20184,8 @@
       "fallback": true,
       "active": true,
       "hop": null,
-      "t_solve": 0.0263,
-      "t_multi": 0.143,
+      "t_solve": 0.0261,
+      "t_multi": 0.1407,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -20221,7 +20228,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0261,
+      "t_solve": 0.0264,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -20265,8 +20272,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0278,
-      "t_multi": 0.1474,
+      "t_solve": 0.0257,
+      "t_multi": 0.1405,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -20309,8 +20316,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0264,
-      "t_multi": 0.1182,
+      "t_solve": 0.0274,
+      "t_multi": 0.1156,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -20353,7 +20360,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.027,
+      "t_solve": 0.0261,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -20397,8 +20404,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0262,
-      "t_multi": 0.131,
+      "t_solve": 0.026,
+      "t_multi": 0.1222,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -20441,7 +20448,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0264,
+      "t_solve": 0.0261,
       "t_multi": 0.0,
       "naive": {
         "@2": 1.0,
@@ -20485,8 +20492,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0259,
-      "t_multi": 0.1146,
+      "t_solve": 0.0256,
+      "t_multi": 0.1122,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -20529,7 +20536,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0333,
+      "t_solve": 0.0259,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -20573,8 +20580,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0266,
-      "t_multi": 0.1246,
+      "t_solve": 0.0259,
+      "t_multi": 0.1204,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -20617,8 +20624,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0263,
-      "t_multi": 0.115,
+      "t_solve": 0.026,
+      "t_multi": 0.1122,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -20661,7 +20668,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0264,
+      "t_solve": 0.0259,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -20705,7 +20712,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0334,
+      "t_solve": 0.0261,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.0,
@@ -20749,8 +20756,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0254,
-      "t_multi": 0.1212,
+      "t_solve": 0.025,
+      "t_multi": 0.1233,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -20793,7 +20800,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0275,
+      "t_solve": 0.026,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.0,
@@ -20838,7 +20845,7 @@
       "active": true,
       "hop": null,
       "t_solve": 0.0262,
-      "t_multi": 0.1144,
+      "t_multi": 0.1123,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -20881,8 +20888,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0272,
-      "t_multi": 0.1141,
+      "t_solve": 0.026,
+      "t_multi": 0.1122,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -20925,8 +20932,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0273,
-      "t_multi": 0.1236,
+      "t_solve": 0.0261,
+      "t_multi": 0.1203,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -20969,7 +20976,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0272,
+      "t_solve": 0.026,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -21013,7 +21020,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0263,
+      "t_solve": 0.026,
       "t_multi": 0.0,
       "naive": {
         "@2": 1.0,
@@ -21057,7 +21064,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0327,
+      "t_solve": 0.0259,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -21101,7 +21108,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0297,
+      "t_solve": 0.026,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -21145,7 +21152,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0263,
+      "t_solve": 0.0259,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -21189,8 +21196,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0249,
-      "t_multi": 0.1075,
+      "t_solve": 0.0246,
+      "t_multi": 0.1063,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -21233,8 +21240,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0307,
-      "t_multi": 0.1156,
+      "t_solve": 0.0258,
+      "t_multi": 0.1121,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -21277,7 +21284,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0264,
+      "t_solve": 0.0259,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -21321,8 +21328,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0291,
-      "t_multi": 0.1155,
+      "t_solve": 0.0254,
+      "t_multi": 0.1143,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -21365,7 +21372,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0272,
+      "t_solve": 0.0299,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -21409,8 +21416,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0265,
-      "t_multi": 0.1171,
+      "t_solve": 0.0261,
+      "t_multi": 0.1121,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -21453,7 +21460,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0264,
+      "t_solve": 0.0262,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -21497,8 +21504,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0319,
-      "t_multi": 0.1228,
+      "t_solve": 0.026,
+      "t_multi": 0.121,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -21541,8 +21548,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0326,
-      "t_multi": 0.1181,
+      "t_solve": 0.026,
+      "t_multi": 0.115,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -21585,8 +21592,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.034,
-      "t_multi": 0.1136,
+      "t_solve": 0.0299,
+      "t_multi": 0.1124,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -21630,7 +21637,7 @@
       "active": true,
       "hop": null,
       "t_solve": 0.0262,
-      "t_multi": 0.1239,
+      "t_multi": 0.1202,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -21673,8 +21680,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0263,
-      "t_multi": 0.1131,
+      "t_solve": 0.0259,
+      "t_multi": 0.1121,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -21717,7 +21724,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0263,
+      "t_solve": 0.0262,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -21761,7 +21768,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.026,
+      "t_solve": 0.0262,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -21805,7 +21812,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0263,
+      "t_solve": 0.0549,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -21849,7 +21856,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0262,
+      "t_solve": 0.0308,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -21893,7 +21900,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0264,
+      "t_solve": 0.0261,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.0,
@@ -21937,7 +21944,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0292,
+      "t_solve": 0.0261,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.0,
@@ -21981,8 +21988,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.026,
-      "t_multi": 0.1155,
+      "t_solve": 0.0253,
+      "t_multi": 0.1106,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -22025,8 +22032,8 @@
       "fallback": true,
       "active": true,
       "hop": null,
-      "t_solve": 0.0263,
-      "t_multi": 0.1394,
+      "t_solve": 0.0315,
+      "t_multi": 0.1503,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -22069,7 +22076,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0263,
+      "t_solve": 0.0262,
       "t_multi": 0.0,
       "naive": {
         "@2": 1.0,
@@ -22113,8 +22120,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0356,
-      "t_multi": 0.1171,
+      "t_solve": 0.0272,
+      "t_multi": 0.116,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -22158,7 +22165,7 @@
       "active": true,
       "hop": null,
       "t_solve": 0.0276,
-      "t_multi": 0.1237,
+      "t_multi": 0.1373,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,
@@ -22201,7 +22208,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0263,
+      "t_solve": 0.0273,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -22245,7 +22252,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0308,
+      "t_solve": 0.0261,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.0,
@@ -22289,8 +22296,8 @@
       "fallback": true,
       "active": true,
       "hop": null,
-      "t_solve": 0.0311,
-      "t_multi": 0.1425,
+      "t_solve": 0.0285,
+      "t_multi": 0.1353,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -22334,7 +22341,7 @@
       "active": true,
       "hop": null,
       "t_solve": 0.0264,
-      "t_multi": 0.1241,
+      "t_multi": 0.1224,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -22377,8 +22384,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0261,
-      "t_multi": 0.1112,
+      "t_solve": 0.0257,
+      "t_multi": 0.1105,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -22421,8 +22428,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0279,
-      "t_multi": 0.118,
+      "t_solve": 0.0259,
+      "t_multi": 0.1125,
       "naive": {
         "@2": 1.0,
         "@5": 1.0,
@@ -22465,7 +22472,7 @@
       "fallback": false,
       "active": false,
       "hop": null,
-      "t_solve": 0.0297,
+      "t_solve": 0.0261,
       "t_multi": 0.0,
       "naive": {
         "@2": 0.5,
@@ -22509,8 +22516,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0342,
-      "t_multi": 0.1177,
+      "t_solve": 0.0252,
+      "t_multi": 0.1123,
       "naive": {
         "@2": 0.0,
         "@5": 0.0,
@@ -22553,8 +22560,8 @@
       "fallback": false,
       "active": true,
       "hop": null,
-      "t_solve": 0.0266,
-      "t_multi": 0.1141,
+      "t_solve": 0.026,
+      "t_multi": 0.114,
       "naive": {
         "@2": 0.5,
         "@5": 0.5,
@@ -22597,8 +22604,8 @@
       "fallback": true,
       "active": true,
       "hop": null,
-      "t_solve": 0.0269,
-      "t_multi": 0.1362,
+      "t_solve": 0.0405,
+      "t_multi": 0.135,
       "naive": {
         "@2": 0.5,
         "@5": 1.0,

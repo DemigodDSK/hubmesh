@@ -99,7 +99,9 @@ and four hops (`docs/COUNCIL_AUDIT.md` §5).
 **Scoring attribution, cleanly (HotpotQA N=500, body-only, recall@10;
 re-measured 2026-09-14 with the structural arm run through the SAME
 packer, budget and near-duplicate filter as hubmesh —
-`benchmarks/results/*_b5.json`):** naive 0.819 · `structural_only` 0.676
+`benchmarks/results/hotpotqa_n500_kg_body.json` and
+`musique_n300_kg_title.json`, re-recorded 2026-09-15 from a clean checkout
+at `c724c24` with `git_dirty=false`):** naive 0.819 · `structural_only` 0.676
 · hubmesh 0.871 · `hippo_style` 0.561. The fusion's gain over the *same
 graph's pure structural signal* is **+19.5 pts** [+16.3, +22.7] (paired
 bootstrap; MuSiQue N=300: +16.3 [+11.9, +20.7]) — the number to cite for
