@@ -379,6 +379,51 @@ tie: `structural_only` recall@10 on the MuSiQue title+text run,
 differences in the embeddings. These files replace the earlier
 dirty-tree and `_b5` versions.
 
+### Step-2 protocol: review response and Amendment 2 (2026-09-15)
+
+An external review of the complementarity runner arrived after stage R
+(candidate generation) had completed for all six configurations and
+before any reranking result existed. Each claim was checked against the
+code and the stage files; everything below is recorded in
+`benchmarks/PROTOCOL_complementarity.md` as Amendment 2, before any
+result was examined, and lives in commit `bc289d0`.
+
+| review claim | finding | change |
+|---|---|---|
+| reference arms keep five results while reporting @10 | confirmed: A1/A2/A3/A5 stored 5 ids, `final = cand[:10]`, so ce@10 = ce@5 for those arms | stage R stores a 10-prefix; old stage files extended from the exact A7/A4/A8 prefixes plus a deterministic BM25 recomputation, every stored 5-prefix verified (`extend_reference_arms`) |
+| unresolved gold can be dropped | confirmed as a code path: gold was filtered to the pool before scoring; a 2Wiki supporting title with no context paragraph was also dropped inside the loader. Checked against the data: in all six stage files every stored gold list equals the full gold list (0 of 2,481 sampled 2Wiki supporting facts unresolved), so no number changes | metrics use the full gold list, `n_gold_unresolved` recorded per question; the loader keeps `<title>::unresolved` ids (`refresh_gold`) |
+| rerank timings come from A4 alone | confirmed | each reranked arm's own list is scored from scratch and timed on the first 100 queries (primary configuration) / 50 (secondary); composed latency for reranked arms is over those queries with the count reported; ranking scores come from one untimed pass over the union of candidates, cached per (question, paragraph) with provenance |
+| resumed stage files lack identity validation | confirmed: `--stage rerank` loaded the file unchecked | `validate_stage`: dataset / n / seed / embedder where present, question order against the loaded sample, every candidate in the pool, exactly 50 distinct for A4/A6/A7, ≤ 50 for A8, prefix relations A1 ⊂ A7, A3 ⊂ A4, A5 ⊂ A8; new stage files carry qid and pool hashes, the protocol hash and the commit |
+| A8's smaller candidate count is not equal-budget | verified per query: A4, A6, A7 have exactly 50 distinct candidates in every query of every file; A8 has fewer than 50 in 493 of 1,000 primary-configuration queries (minimum 16; 4 queries below 20) | A8 labelled a variable-count, token-budgeted arm in every result file; per-arm candidate counts reported; construction unchanged |
+| the memory explanation is plausible, not proven | agreed; the runner now samples allocated and driver Metal memory through every run and stores the samples in the manifest, interpreted only as "grows / does not grow" | — |
+| "5 pairs/s is the physical ceiling" is unsupported | withdrawn; throughput is reported as measured on this machine | — |
+| validate the optimized reranker before using its scores | done, below | `benchmarks/validate_rerank.py`; every stage K run repeats a one-question comparison and aborts above 0.05 logits |
+
+The stage R files were kept, not recomputed: each passes the identity
+checks above, and question order, candidates and gold match a fresh load
+of the sample.
+
+**Reranker validation** (`benchmarks/results/rerank_validation_2wiki_mps_fp16.json`,
+run from the worktree at `bc289d0` on the real 2Wiki candidates). The
+fixed-shape path uses the CrossEncoder's own tokenizer and weights, the
+same pair truncation (`longest_first`) and 512 limit, right padding with
+an attention mask, and the classification logit at position 0; it
+differs from the library only in padding every pair to the smallest of
+128 / 256 / 384 / 512 tokens and scoring constant batches of 8. Ranking
+uses the raw logit.
+
+| check | result |
+|---|---|
+| A. library path (`CrossEncoder.predict`, identity activation, dynamic padding) vs fixed-shape, both fp16 on Metal, 20 queries | max abs logit difference 0.0156, mean 0.0014; top-5 identical for A4/A6/A7/A8 in 20/20 queries; top-10 identical in 18–19/20 (swaps below rank 5); full 70-candidate order identical in 6/20 |
+| B. endurance, fixed-shape only, 150 queries / 11,119 pairs | 5.26 pairs/s; Metal driver memory 6.77 GB at query 0 → 6.86 GB at query 149 (allocated tensors flat at 1.06 GB, RSS 1.9 GB). The level was set by the 20 library-path queries that preceded it; a fixed-shape-only 40-query test earlier the same day ran at 2.78 → 2.98 GB. Under the library path, driver memory had grown ~0.6 GB per query and the run failed near query 25 |
+| C. fp32 CPU library reference vs fixed-shape fp16 Metal, 5 queries | max abs logit difference 0.0151, mean 0.0026; top-5 identical for every arm in 5/5; CPU path 3.2 pairs/s |
+
+Stage K was then launched over the six kept stage files from `bc289d0`,
+primary configuration first, each configuration on Metal fp16 with a
+whole-configuration CPU fp32 redo on failure (device and precision are
+recorded in every manifest and score cache, so results are never mixed
+without saying so). Results are examined once, after all six complete.
+
 ## What was NOT done (deliberately)
 
 - No competitor lane was run (LightRAG pilot awaits the Moonshot
