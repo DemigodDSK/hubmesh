@@ -166,7 +166,11 @@ class TestManifestIdentity:
         for key in ("src_sha256", "benchmarks_sha256"):
             assert len(a[key]) == 64 and a[key] == b[key]
         assert a["harness_sha256"] and a["harness"].endswith("test_review_sep14_eval.py")
-        assert isinstance(a["git_dirty_paths"], list)
+        if a["git_error"] is None:                      # git works: real commit + dirty state
+            assert isinstance(a["git_dirty_paths"], list) and isinstance(a["git_dirty"], bool)
+            assert a["git_commit"] and len(a["git_commit"]) == 40
+        else:                                           # git unusable: unknown, never "clean"
+            assert a["git_commit"] is None and a["git_dirty"] is None and a["git_dirty_paths"] is None
         assert (a["embed_device"], a["embed_batch_size"]) == ("cpu", 16)
 
     def test_tree_hash_tracks_content(self, tmp_path):

@@ -414,7 +414,7 @@ uses the raw logit.
 
 | check | result |
 |---|---|
-| A. library path (`CrossEncoder.predict`, identity activation, dynamic padding) vs fixed-shape, both fp16 on Metal, 20 queries | max abs logit difference 0.0156, mean 0.0014; top-5 identical for A4/A6/A7/A8 in 20/20 queries; top-10 identical in 18–19/20 (swaps below rank 5); full 70-candidate order identical in 6/20 |
+| A. library path (`CrossEncoder.predict`, identity activation, dynamic padding) vs fixed-shape, both fp16 on Metal, 20 queries | max abs logit difference 0.0156, mean 0.0014; top-5 order identical for A4, A6, A7 and A8 in 20/20 queries; top-10 order identical in 18/20 (A4) and 19/20 (A6, A7, A8); the full ~70-candidate order identical in 6/20. This is sampled top-5 agreement, not a proof of exact ranking equivalence |
 | B. endurance, fixed-shape only, 150 queries / 11,119 pairs | 5.26 pairs/s; Metal driver memory 6.77 GB at query 0 → 6.86 GB at query 149 (allocated tensors flat at 1.06 GB, RSS 1.9 GB). The level was set by the 20 library-path queries that preceded it; a fixed-shape-only 40-query test earlier the same day ran at 2.78 → 2.98 GB. Under the library path, driver memory had grown ~0.6 GB per query and the run failed near query 25 |
 | C. fp32 CPU library reference vs fixed-shape fp16 Metal, 5 queries | max abs logit difference 0.0151, mean 0.0026; top-5 identical for every arm in 5/5; CPU path 3.2 pairs/s |
 
@@ -423,6 +423,42 @@ primary configuration first, each configuration on Metal fp16 with a
 whole-configuration CPU fp32 redo on failure (device and precision are
 recorded in every manifest and score cache, so results are never mixed
 without saying so). Results are examined once, after all six complete.
+
+### Step-2 protocol: run 1 lost, second review, run 2 (2026-09-16/17)
+
+**Run 1.** All six configurations finished stage K on 2026-09-16 (Metal
+fp16, no fallback). Two things then went wrong, both recorded in
+`benchmarks/results/complementarity_run1_2026-09-16_transcribed.md`:
+the machine's Xcode `git` began refusing to run mid-day, so the last two
+result files carried no commit (their content hashes matched the other
+four); and the session's scratch directory, where every output lived,
+was purged when the session ended, before the copy into the repository
+had been made. The four configurations with complete manifests had been
+examined once, at 14:11 EDT, before the loss; the two without a commit
+never were. The registered outcome as examined in run 1 — 2Wiki,
+bge-m3, A6 − A4 complete-evidence@5 = **+0.30 [−0.10, +0.80], n = 1000,
+"no useful gain"**; guard slice saturated at 1.000 for both arms;
+latency ratio 1.054 — is on record in that file, together with every
+number the examination printed. No per-question record of run 1 exists.
+
+**Second review (2026-09-17)** and what changed, in the commit that adds
+this section:
+
+| review point | response |
+|---|---|
+| the resume checker writes qid/pool/protocol hashes but does not verify them; wrong hashes and an incompatible embedding sequence length were accepted | `validate_stage` now recomputes the question-id and pool hashes from the loaded sample and rejects a mismatch; embedding settings given on the command line (`--embed-dtype`, `--embed-batch-size`, `--embed-max-seq-len`) must equal the stage file's; the protocol hash is compared and any change between stage R and stage K is recorded in the manifest (an amendment is legitimate, silence is not); validation now runs before stage K for fresh stage files too |
+| the score cache lacks fingerprints of the question/document text and a pinned model revision | cache provenance now includes SHA-256 fingerprints of the exact questions and pool texts, the reranker's Hugging Face snapshot revision and the actual parameter dtype; a cache with any key outside the current sample is refused; the revision is recorded in every manifest |
+| "identical top-5/top-10" overstated the validation | corrected above and in the commit: top-5 identical 20/20; top-10 18/20 (A4), 19/20 (A6–A8); full order 6/20 — sampled agreement, not exact equivalence |
+| lead with the registered result; exploratory findings are hypotheses | the run-1 record and the run-2 write-up lead with A6 − A4 ce@5, its interval, the guard and the latency rule; candidate-list completeness and per-type contrasts are labelled post-hoc |
+| recovering the two commit-less runs from cached scores needs verified cache identity and disclosure | moot: those runs and the caches were lost. In run 2 the caches are fingerprinted as above and `rerank_cache.hits` in each manifest says how many pair scores were reused |
+| a manifest must never silently record a missing commit | `build_manifest` records `git_error` and sets `git_dirty` to null (unknown) when git is unusable; the runner refuses to start in that state |
+
+**Run 2** re-runs the whole experiment — stage R and stage K for all six
+configurations — from a clean worktree at the commit that adds this
+section, in a durable directory, gzipping each result file into
+`benchmarks/results/` the moment it is written. Its examination is the
+second look at the primary outcome (run 1's is above), and it is the run
+whose files are committed and reported.
 
 ## What was NOT done (deliberately)
 

@@ -237,6 +237,57 @@ class TestStageValidation:
             validate_stage(bad, exp, ["q0", "q1", "q2"], pool)
 
 
+    def test_stored_hashes_are_recomputed_and_must_match(self):
+        from run_complementarity import _sha256_of_ids
+        stage, pool = _stage()
+        qids = ["q0", "q1", "q2"]
+        exp = {"dataset": None, "n": None, "seed": None, "embed_model": "m"}
+        stage["qids_sha256"] = _sha256_of_ids(qids)
+        stage["pool_sha256"] = _sha256_of_ids(pool)
+        stage["protocol_sha256"] = "abc"
+        rep = validate_stage(stage, exp, qids, pool, protocol_hash="abc")
+        assert rep["checked"]["qids_sha256"] == "verified" and rep["checked"]["pool_sha256"] == "verified"
+        assert rep["checked"]["protocol_changed_since_stage_r"] is False
+        # a protocol amended between stage R and stage K is recorded, not fatal
+        assert validate_stage(stage, exp, qids, pool, protocol_hash="def")["checked"]["protocol_changed_since_stage_r"] is True
+        stage["pool_sha256"] = "0" * 64
+        with pytest.raises(ValueError, match="pool_sha256"):
+            validate_stage(stage, exp, qids, pool)
+        stage["pool_sha256"] = _sha256_of_ids(pool)
+        stage["qids_sha256"] = "0" * 64
+        with pytest.raises(ValueError, match="qids_sha256"):
+            validate_stage(stage, exp, qids, pool)
+
+    def test_asserted_embedding_settings_must_match_the_stage_file(self):
+        stage, pool = _stage()
+        stage.update({"embed_max_seq_len": 512, "embed_dtype": "fp16", "embed_batch_size": 4})
+        qids = ["q0", "q1", "q2"]
+        base = {"dataset": None, "n": None, "seed": None, "embed_model": "m"}
+        validate_stage(stage, {**base, "embed_dtype": None}, qids, pool)                        # not asserted
+        validate_stage(stage, {**base, "embed_dtype": "fp16", "embed_max_seq_len": 512}, qids, pool)
+        with pytest.raises(ValueError, match="embed_dtype"):
+            validate_stage(stage, {**base, "embed_dtype": "fp32"}, qids, pool)
+        with pytest.raises(ValueError, match="embed_max_seq_len"):
+            validate_stage(stage, {**base, "embed_max_seq_len": 1024}, qids, pool)
+
+
+class TestScoreCache:
+    def test_cache_is_bound_to_provenance_and_sample(self, tmp_path):
+        from run_complementarity import ScoreCache
+        prov = {"rerank_model": "m", "model_revision": "r1", "questions_sha256": "q", "texts_sha256": "t"}
+        p = tmp_path / "cache.json"
+        p.write_text(json.dumps({"provenance": prov, "scores": {"q0\tp1": 0.5}}))
+        c = ScoreCache(p, prov, questions={"q0": "?"}, texts={"p1": "x"})
+        assert c.loaded == 1 and c.get("q0", "p1") == 0.5 and c.hits == 1
+        other = ScoreCache(p, {**prov, "model_revision": "r2"}, questions={"q0": "?"}, texts={"p1": "x"})
+        assert other.loaded == 0                                            # different snapshot: not reused
+        with pytest.raises(ValueError, match="outside the current sample"):
+            ScoreCache(p, prov, questions={"q9": "?"}, texts={"p1": "x"})   # stale key: refused
+        c.put("q0", "p2", 1.0)
+        c.save()
+        assert json.loads(p.read_text())["scores"]["q0\tp2"] == 1.0
+
+
 class TestReferenceArmExtension:
     def test_extends_from_prefixes_and_bm25_with_prefix_checks(self):
         stage, pool = _stage(ref=5)

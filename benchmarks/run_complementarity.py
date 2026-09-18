@@ -51,7 +51,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent / "src"))
 sys.path.insert(0, str(HERE))
 
-from manifest import build_manifest, _git  # noqa: E402
+from manifest import build_manifest, _git, git_error  # noqa: E402
 
 RRF_K = 60
 TOPN_FUSE = 200
@@ -206,23 +206,47 @@ def plan_fixed_shape_batches(lengths: list[int], buckets: tuple[int, ...] = RERA
     return plan
 
 
-def validate_stage(stage: dict, expected: dict, qids: list[str], pool_ids) -> dict:
-    """Identity checks before a stage file is reused (Amendment 2). Raises
-    ValueError with every problem found; returns what was checked."""
+def validate_stage(stage: dict, expected: dict, qids: list[str], pool_ids,
+                   protocol_hash: str | None = None) -> dict:
+    """Identity checks before a stage file is used for stage K (Amendment 2).
+    `expected` carries this run's dataset / n / seed / embedder and, where
+    the caller asserted them, the embedding settings (a None value asserts
+    nothing). The stored question-id and pool hashes are recomputed from
+    the loaded sample and must match; the stored protocol hash is compared
+    with the current file and any difference is recorded, not fatal (an
+    amendment between stage R and stage K is legitimate but must be
+    visible). Raises ValueError listing every problem; returns what was
+    checked."""
     problems: list[str] = []
     checked: dict = {}
-    for k in ("dataset", "n", "seed", "embed_model"):
+    for k in ("dataset", "n", "seed", "embed_model",
+              "embed_max_seq_len", "embed_dtype", "embed_batch_size"):
+        want = expected.get(k)
+        if k not in stage:
+            checked[k] = ("absent (stage file predates Amendment 2; identity rests on the qid and pool checks)"
+                          if k in ("dataset", "n", "seed") else "absent")
+            continue
+        checked[k] = stage[k]
+        if want is not None and stage[k] != want:
+            problems.append(f"{k}: stage file {stage[k]!r} != this run {want!r}")
+    pool_list = list(pool_ids)
+    for k, recomputed in (("qids_sha256", _sha256_of_ids(qids)), ("pool_sha256", _sha256_of_ids(pool_list))):
         if k in stage:
-            checked[k] = stage[k]
-            if stage[k] != expected[k]:
-                problems.append(f"{k}: stage file {stage[k]!r} != this run {expected[k]!r}")
+            if stage[k] != recomputed:
+                problems.append(f"{k}: stage file {str(stage[k])[:12]} != recomputed {recomputed[:12]}")
+            checked[k] = "verified"
         else:
-            checked[k] = "absent (stage file predates Amendment 2; identity rests on the qid and pool checks)"
+            checked[k] = "absent (predates Amendment 2; qid order and pool membership checked instead)"
+    checked["stage_protocol_sha256"] = stage.get("protocol_sha256")
+    checked["protocol_changed_since_stage_r"] = (
+        None if stage.get("protocol_sha256") is None or protocol_hash is None
+        else stage["protocol_sha256"] != protocol_hash)
+    checked["stage_git_commit"] = stage.get("git_commit")
     recs = stage.get("records", [])
     got = [r["qid"] for r in recs]
     if got != list(qids):
         problems.append(f"qid list differs from the loaded sample ({len(got)} vs {len(qids)} or out of order)")
-    pool = set(pool_ids)
+    pool = set(pool_list)
     bad = sum(1 for r in recs for a in ARMS for d in r["cand"][a] if d not in pool)
     if bad:
         problems.append(f"{bad} candidate ids are not in the pool")
@@ -428,12 +452,30 @@ class FixedShapeReranker:
         return {"buckets_compiled": compiled, "seconds": round(time.perf_counter() - t0, 2)}
 
 
+def model_revision(model, name: str) -> str | None:
+    """The Hugging Face snapshot (commit) the weights were loaded from."""
+    rev = getattr(getattr(model, "config", None), "_commit_hash", None)
+    if rev:
+        return str(rev)
+    try:
+        from huggingface_hub.constants import HF_HUB_CACHE
+        snaps = Path(HF_HUB_CACHE) / f"models--{name.replace('/', '--')}" / "snapshots"
+        found = [p.name for p in snaps.iterdir()] if snaps.is_dir() else []
+        return found[0] if len(found) == 1 else None
+    except Exception:
+        return None
+
+
 class ScoreCache:
     """(qid, doc_id) -> logit, persisted with the provenance that makes the
-    scores reusable: model, device, dtype, buckets, batch, max length,
-    dataset sample. Both embedder configurations of a dataset share it."""
+    scores reusable: model name AND snapshot revision, device, actual
+    dtype, buckets, batch, max length, and fingerprints of the exact
+    question and document texts (so a cache never outlives its data). Both
+    embedder configurations of a dataset share it; every key must belong
+    to the current sample or the cache is refused."""
 
-    def __init__(self, path: Path | None, provenance: dict):
+    def __init__(self, path: Path | None, provenance: dict,
+                 questions: dict | None = None, texts: dict | None = None):
         self.path = Path(path) if path else None
         self.provenance = provenance
         self.scores: dict[tuple[str, str], float] = {}
@@ -441,11 +483,16 @@ class ScoreCache:
         self.hits = 0
         if self.path and self.path.exists():
             blob = json.loads(self.path.read_text())
-            if blob.get("provenance") == provenance:
-                self.scores = {tuple(k.split("\t", 1)): float(v) for k, v in blob["scores"].items()}
-                self.loaded = len(self.scores)
-            else:
+            if blob.get("provenance") != provenance:
                 print(f"      score cache {self.path} has different provenance; not reused", flush=True)
+                return
+            scores = {tuple(k.split("\t", 1)): float(v) for k, v in blob["scores"].items()}
+            if questions is not None and texts is not None:
+                foreign = sum(1 for q, d in scores if q not in questions or d not in texts)
+                if foreign:
+                    raise ValueError(f"score cache {self.path}: {foreign} entries outside the current sample")
+            self.scores = scores
+            self.loaded = len(self.scores)
 
     def get(self, qid: str, doc: str) -> float | None:
         v = self.scores.get((qid, doc))
@@ -654,12 +701,16 @@ def stage_rerank(args, stage, texts, questions):
     dtype_actual = reranker.dtype()
     print(f"      reranker on {device}, parameters {dtype_actual}, buckets {reranker.buckets}, "
           f"batch {reranker.batch}, {_mps_memory()}", flush=True)
-    provenance = {"rerank_model": args.rerank_model, "device": device, "dtype": dtype_actual,
+    revision = model_revision(reranker.model, args.rerank_model)
+    provenance = {"rerank_model": args.rerank_model, "model_revision": revision,
+                  "device": device, "dtype": dtype_actual,
                   "buckets": list(reranker.buckets), "batch": reranker.batch,
                   "max_length": RERANK_MAX_LENGTH, "scores": "raw logits",
                   "dataset": stage.get("dataset", args.dataset), "n": stage.get("n", args.n),
-                  "seed": stage.get("seed", args.seed), "representation": "title+body"}
-    cache = ScoreCache(args.rerank_cache, provenance)
+                  "seed": stage.get("seed", args.seed), "representation": "title+body",
+                  "questions_sha256": _sha256_of_ids(f"{q}\t{t}" for q, t in questions.items()),
+                  "texts_sha256": _sha256_of_ids(f"{d}\t{t}" for d, t in texts.items())}
+    cache = ScoreCache(args.rerank_cache, provenance, questions=questions, texts=texts)
     if cache.loaded:
         print(f"      score cache: {cache.loaded} pair scores reused from {args.rerank_cache}", flush=True)
     recs = stage["records"]
@@ -743,7 +794,7 @@ def stage_rerank(args, stage, texts, questions):
                 rec["final"][a] = list(cand[:10])
     comp = [abs(v - cache.scores[(q, d)]) for (q, d), v in timing_scores.items()]
     stage.update({
-        "rerank_model": args.rerank_model, "rerank_device": device,
+        "rerank_model": args.rerank_model, "rerank_model_revision": revision, "rerank_device": device,
         "rerank_dtype": args.rerank_dtype, "rerank_dtype_actual": dtype_actual,
         "rerank_batch_size": reranker.batch, "rerank_buckets": list(reranker.buckets),
         "rerank_max_length": RERANK_MAX_LENGTH, "rerank_scores": "raw logits",
@@ -822,10 +873,11 @@ def analyse(args, stage, qtype_of, hop_of):
             embed_max_seq_len=stage.get("embed_max_seq_len"),
             stage_file={k: stage.get(k) for k in ("dataset", "n", "seed", "qids_sha256", "pool_sha256",
                                                   "protocol_sha256", "git_commit")},
-            stage_validation=stage.get("resume_validation"),
+            stage_validation=stage.get("stage_validation"),
             reference_arms_extended=stage.get("reference_arms_extended"),
             gold_refresh=stage.get("gold_refresh"),
-            rerank_model=stage.get("rerank_model"), rerank_device=stage.get("rerank_device"),
+            rerank_model=stage.get("rerank_model"), rerank_model_revision=stage.get("rerank_model_revision"),
+            rerank_device=stage.get("rerank_device"),
             rerank_dtype=stage.get("rerank_dtype", "fp32"),
             rerank_dtype_actual=stage.get("rerank_dtype_actual"),
             rerank_batch_size=stage.get("rerank_batch_size"),
@@ -918,10 +970,12 @@ def main():
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--embed-model", default="BAAI/bge-m3")
     ap.add_argument("--embed-device", default=None)
-    ap.add_argument("--embed-batch-size", type=int, default=8)
-    ap.add_argument("--embed-max-seq-len", type=int, default=512)
-    ap.add_argument("--embed-dtype", choices=["fp32", "fp16"], default="fp32",
-                    help="fp16 halves the model's memory on Metal (Amendment 1)")
+    ap.add_argument("--embed-batch-size", type=int, default=None,
+                    help="stage R batch (default 8); if given with --stage rerank it must match the stage file")
+    ap.add_argument("--embed-max-seq-len", type=int, default=None,
+                    help="stage R max sequence length (default 512); same rule on resume")
+    ap.add_argument("--embed-dtype", choices=["fp32", "fp16"], default=None,
+                    help="stage R precision (default fp32; fp16 halves the model's memory on Metal, Amendment 1); same rule on resume")
     ap.add_argument("--rerank-model", default="BAAI/bge-reranker-v2-m3")
     ap.add_argument("--rerank-device", default=None)
     ap.add_argument("--rerank-dtype", choices=["fp32", "fp16"], default="fp32")
@@ -944,6 +998,19 @@ def main():
     ap.add_argument("--out", required=True)
     args = ap.parse_args()
     args.rerank_buckets = tuple(int(b) for b in str(args.rerank_buckets).split(","))
+    asserted_embed = {"embed_max_seq_len": args.embed_max_seq_len, "embed_dtype": args.embed_dtype,
+                      "embed_batch_size": args.embed_batch_size}        # None = not given on the command line
+    if args.embed_batch_size is None:
+        args.embed_batch_size = 8
+    if args.embed_max_seq_len is None:
+        args.embed_max_seq_len = 512
+    if args.embed_dtype is None:
+        args.embed_dtype = "fp32"
+    if git_error() is not None:
+        # A result file without its commit breaks the protocol's provenance
+        # rule; fail before spending hours, not after (two files had to be
+        # re-run on 2026-09-16 when the Xcode git started demanding a licence).
+        raise SystemExit(f"git is unusable here, so the manifest would record no commit: {git_error()}")
     out_path = Path(args.out)
     stage_path = Path(args.stage_file) if args.stage_file else out_path.with_suffix(".stage.json")
 
@@ -962,11 +1029,20 @@ def main():
         print(f"      stage file -> {stage_path}")
         if args.stage == "retrieve":
             return
+        expected = {"dataset": args.dataset, "n": args.n, "seed": args.seed, "embed_model": args.embed_model,
+                    "embed_max_seq_len": args.embed_max_seq_len, "embed_dtype": args.embed_dtype,
+                    "embed_batch_size": args.embed_batch_size}
     else:
         stage = json.loads(stage_path.read_text())
-        expected = {"dataset": args.dataset, "n": args.n, "seed": args.seed, "embed_model": args.embed_model}
-        stage["resume_validation"] = validate_stage(stage, expected, [ex.qid for ex in examples], ids)
-        print(f"      stage file {stage_path} validated: {stage['resume_validation']}")
+        expected = {"dataset": args.dataset, "n": args.n, "seed": args.seed, "embed_model": args.embed_model,
+                    **asserted_embed}
+    # Identity checks run on every stage file before stage K, fresh or resumed
+    # (Amendment 2): recomputed qid/pool hashes, asserted settings, question
+    # order, pool membership, candidate counts, prefix relations.
+    stage["stage_validation"] = validate_stage(stage, expected, [ex.qid for ex in examples], ids,
+                                               protocol_hash=protocol_sha256())
+    print(f"      stage file validated: {stage['stage_validation']}")
+    if args.stage == "rerank":
         if any(len(r["cand"][a]) < REF_N for r in stage["records"] for a in ("A1", "A2", "A3", "A5")):
             bm25_top = bm25_rankings(examples, ids, texts)
             n_ext = extend_reference_arms(stage["records"], bm25_top)
@@ -977,6 +1053,10 @@ def main():
             print(f"      reference arms extended to {REF_N}: {n_ext} lists (stored prefixes verified)")
         stage["gold_refresh"] = refresh_gold(stage["records"], gold_of, ids)
         print(f"      gold refreshed to the full lists: {stage['gold_refresh']}")
+    if stage["stage_validation"].get("protocol_changed_since_stage_r"):
+        print("      NOTE: the protocol file changed between stage R and this run "
+              f"(stage {stage['stage_validation']['stage_protocol_sha256'][:12]} vs now "
+              f"{(protocol_sha256() or '')[:12]}); both hashes are recorded in the manifest")
 
     if args.rerank_cache is None:
         args.rerank_cache = out_path.parent / (f"rerank_cache_{args.dataset}_n{args.n}_s{args.seed}_"

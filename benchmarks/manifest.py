@@ -38,6 +38,21 @@ def _git(*args: str) -> str | None:
         return None
 
 
+def git_error() -> str | None:
+    """Why `git` is unusable right now (None when it works). Recorded in the
+    manifest so a missing commit is never silent: on 2026-09-16 the Xcode
+    copy of git began refusing to run until a licence was accepted, and two
+    result files were written with no commit before that was noticed."""
+    try:
+        subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True, check=True,
+                       stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        return None
+    except subprocess.CalledProcessError as e:
+        return (e.stderr or e.stdout or str(e)).strip()[:500]
+    except Exception as e:  # git not installed at all
+        return f"{type(e).__name__}: {e}"[:500]
+
+
 def _version(mod: str) -> str | None:
     try:
         m = __import__(mod)
@@ -71,7 +86,8 @@ def build_manifest(harness: str | None = None, **extra) -> dict:
     (dataset, n, seed, representation, planner config, embedding model,
     ...)."""
     sys.path.insert(0, str(ROOT / "src"))
-    dirty = (_git("status", "--porcelain") or "").splitlines()
+    status = _git("status", "--porcelain")
+    dirty = status.splitlines() if status is not None else None   # None = unknown, not clean
     src_files = sorted((ROOT / "src" / "hubmesh").rglob("*.py"))
     bench_files = sorted((ROOT / "benchmarks").rglob("*.py"))
     harness_path = Path(harness) if harness else Path(sys.argv[0] or "")
@@ -82,8 +98,9 @@ def build_manifest(harness: str | None = None, **extra) -> dict:
     return {
         "timestamp_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "git_commit": _git("rev-parse", "HEAD"),
-        "git_dirty": bool(dirty),
-        "git_dirty_paths": dirty[:20],
+        "git_error": git_error(),
+        "git_dirty": bool(dirty) if dirty is not None else None,
+        "git_dirty_paths": dirty[:20] if dirty is not None else None,
         "src_sha256": _tree_sha256(src_files, ROOT) if src_files else None,
         "benchmarks_sha256": _tree_sha256(bench_files, ROOT) if bench_files else None,
         "harness": harness_rel,
