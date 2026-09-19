@@ -113,6 +113,84 @@ fallback, all ending with ≥1 seed). The larger gaps quoted below against
 subgraph, entity-mean readout, different fallback) and should not be
 read as scoring attribution.
 
+**Complementarity to a reranked hybrid stack — pre-registered, negative
+(run 2026-09-18, examined once).** The protocol in
+`benchmarks/PROTOCOL_complementarity.md` (frozen at `c68ddc8`, amended
+at `54049e3` and `bc289d0` before any result existed) asks one question:
+given hybrid BM25 + dense candidates reranked by `BAAI/bge-reranker-v2-m3`
+(50 pairs per question), does replacing the hybrid list's ranks 31–50
+with hubmesh's top-20 — the same 50-pair reranking budget — raise the
+fraction of questions whose **every** supporting paragraph is in the
+final top-5 (complete-evidence@5)?
+
+- **Registered outcome (2Wiki dev, N=1,000, bge-m3): A6 − A4
+  complete-evidence@5 = +0.30 points, 95% paired-bootstrap interval
+  [−0.10, +0.80] → "no useful gain"** (the rule needed the interval's
+  upper bound to reach +3.0). Discordant questions: 4 gained, 1 lost.
+- Regression guard (comparison-type questions, n = 236): +0.00; both
+  arms score 1.000 on every question of the slice, so the guard is met
+  trivially.
+- Latency rule: p95(A6 composed) / p95(A4 composed) = 1.023 ≤ 1.5, met.
+  On this laptop (fp16 on Metal, fixed-shape batching) reranking one
+  50-candidate list takes ~8.6 s, so the absolute figures are not
+  deployment numbers; the ratio is the measurement.
+
+| arm (2Wiki, bge-m3) | ce@5 | ce@10 | r@5 | r@10 |
+|---|---:|---:|---:|---:|
+| A1 dense top-5 | 0.426 | 0.485 | 0.717 | 0.752 |
+| A2 BM25 top-5 | 0.313 | 0.399 | 0.643 | 0.698 |
+| A3 hybrid (RRF) top-5 | 0.386 | 0.461 | 0.703 | 0.745 |
+| **A4 hybrid 50 → rerank (control)** | **0.400** | 0.466 | 0.714 | 0.749 |
+| A5 hubmesh top-5, no reranker | 0.455 | 0.529 | 0.741 | 0.785 |
+| **A6 hybrid 30 ∪ hubmesh 20 → rerank (treatment)** | **0.403** | 0.470 | 0.717 | 0.753 |
+| A7 dense 30 ∪ hubmesh 20 → rerank | 0.399 | 0.457 | 0.714 | 0.746 |
+| A8 hubmesh ≤ 50 → rerank (variable count) | 0.402 | 0.464 | 0.715 | 0.748 |
+
+The five secondary configurations, A6 − A4 complete-evidence@5: 2Wiki
+MiniLM +1.00 [+0.40, +1.70]; HotpotQA bge-m3 +0.40 [+0.00, +1.00];
+HotpotQA MiniLM +0.80 [+0.00, +1.80]; MuSiQue bge-m3 +0.33 [−1.00,
++2.00]; MuSiQue MiniLM +1.33 [+0.33, +2.67]. All fall under "no useful
+gain" by the registered rule; the point estimates are consistently
+positive and small, larger with the weaker embedder.
+
+What the diagnostics say (pre-listed, computed for every run): hubmesh
+found at least two seed entities for 47% of 2Wiki questions; on average
+12.8 of its top-20 were already in the hybrid top-30; no gold paragraph
+lacked entities. A8 is a variable-count arm — one `retrieve(top_k=50,
+budget_tokens=10_000)` call returned fewer than 50 paragraphs for 493 of
+the 1,000 questions (minimum 16) because the packing budget binds — so it
+reranks fewer pairs than A4; A4, A6 and A7 rerank exactly 50 for every
+question.
+
+Post-hoc observations (computed after the outcome was read; hypotheses,
+not results): hubmesh's top-20 contributed a gold paragraph that the
+hybrid top-30 lacked in 106 of 1,000 questions, 77 of those paragraphs
+absent from the whole hybrid top-50, yet the cross-encoder ranked 78 of
+the 109 outside its top-10 (16 in the top-5). Complete evidence is
+present somewhere in the candidate list for 57.2% (A4) vs 61.2% (A6) and
+64.5% (A8) of questions, so the lists differ more than the reranked
+top-5s do. hubmesh's own unreranked top-5 (A5) beats the reranked hybrid
+on 2Wiki with bge-m3 (0.455 vs 0.400; 88 questions won, 33 lost; the
+difference sits in compositional 0.381 vs 0.270 and inference 0.521 vs
+0.420 questions, with comparison questions saturated at 1.000 and
+bridge-comparison near 0.02 for every arm) but not in the other five
+configurations, where A5 is below A4 by 3–24 points. A test of "the
+reranker discards graph-contributed evidence" or of "hubmesh's ordering
+beats a cross-encoder on 2Wiki bridge questions" would need its own
+pre-registration.
+
+Consequence (decision table, "no useful gain"): no default changes, no
+new arms; the proposition that hubmesh adds evidence to a strong reranked
+stack at equal budget is not supported on these data. Files:
+`benchmarks/results/complementarity_{2wiki_n1000,hotpotqa_n500,musique_n300}_{bge-m3,minilm}.json.gz`
+(per-question records, manifests at `f8a391e`, clean tree, Metal fp16
+throughout, in-run reranker parity ≤ 0.012 logits), reranker validation
+in `rerank_validation_2wiki_mps_fp16.json`, and the record of a first
+run whose files were lost — it had produced identical accuracy numbers
+for the four configurations examined — in
+`complementarity_run1_2026-09-16_transcribed.md`. Details and the review
+history: `docs/REVIEW_BATCHES.md`.
+
 ---
 
 ## TL;DR (historical — v0.1.1 measurements, body-only, MiniLM)

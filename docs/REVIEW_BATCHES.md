@@ -460,6 +460,99 @@ section, in a durable directory, gzipping each result file into
 second look at the primary outcome (run 1's is above), and it is the run
 whose files are committed and reported.
 
+### Step-2 protocol: run 2 results (2026-09-18) — examined once
+
+Run 2 ran from a clean worktree at `f8a391e`, 2026-09-18 00:21 → 23:03
+EDT (the machine slept for several hours in between; runs pause and
+resume, nothing is recomputed). Stage R and stage K for all six
+configurations completed on Metal fp16 with no CPU fallback. Every
+manifest records the commit with a clean tree and no git error, the
+recomputed question-id and pool hashes verified, the protocol unchanged
+between stages (`620f9e19…`), the asserted embedding settings matched,
+the reranker snapshot `953dc6f6…` with parameters in `torch.float16`,
+an in-run parity gate of ≤ 0.0117 logits with identical top-5 and
+top-10 on the gate question, timing-pass vs scoring-pass logits
+differing by 0.0 on every overlapping pair, and Metal driver memory ≤
+2.13 GB. The gzipped files' contents equal the originals by SHA-256.
+The six files were examined once, together, with
+`benchmarks/examine_complementarity.py` at 23:35.
+
+**Registered outcome — 2Wiki dev, N = 1,000, bge-m3: A6 − A4
+complete-evidence@5 = +0.30 points, 95% paired-bootstrap interval
+[−0.10, +0.80], n = 1,000 → "no useful gain"** (rule: upper bound
+≥ +3.0 required for anything else). Discordant questions: A6 better on
+4, A4 better on 1. Regression guard, comparison-type slice (n = 236):
++0.00 [+0.00, +0.00], both arms at 1.000 — met trivially. Latency rule:
+p95(A6) / p95(A4) = 1.023 ≤ 1.5, met; rerank medians over the 100 timed
+questions A4 8,634 ms, A6 8,635 ms, A7 8,986 ms, A8 8,456 ms; retrieval
+stage medians embed 41, dense 1.2, BM25 12, RRF 0.2, hubmesh 264 ms.
+
+**Reproduction of run 1.** Every accuracy figure of the four
+configurations examined in run 1 — every arm's ce@5/ce@10/r@5/r@10,
+every pre-listed contrast and interval, every slice, every diagnostic,
+the candidate counts and the mechanism counts — is identical in run 2
+(the transcribed run-1 record can be compared line by line with the
+committed files). Only the timing figures differ: run 1's primary timing
+pass ran at about half the speed (rerank medians ~16.5 s vs ~8.6 s), so
+its latency ratio was 1.054 against run 2's 1.023; both meet the rule.
+
+| configuration | A6 − A4 ce@5 | guard (comparison slice) | p95 ratio | A1 | A2 | A3 | A4 | A5 | A6 | A7 | A8 |
+|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| **2Wiki bge-m3 (primary)** | **+0.30 [−0.10, +0.80]** | +0.00, n=236, saturated | 1.023 | 0.426 | 0.313 | 0.386 | 0.400 | 0.455 | 0.403 | 0.399 | 0.402 |
+| 2Wiki MiniLM | +1.00 [+0.40, +1.70] | +0.00, n=236, saturated | 1.039 | 0.288 | 0.313 | 0.331 | 0.402 | 0.375 | 0.412 | 0.392 | 0.405 |
+| HotpotQA bge-m3 | +0.40 [+0.00, +1.00] | +0.00, n=100, saturated | 1.034 | 0.770 | 0.462 | 0.668 | 0.854 | 0.738 | 0.858 | 0.844 | 0.854 |
+| HotpotQA MiniLM | +0.80 [+0.00, +1.80] | +0.00, n=100, saturated | 0.950 | 0.540 | 0.462 | 0.554 | 0.840 | 0.602 | 0.848 | 0.812 | 0.828 |
+| MuSiQue bge-m3 | +0.33 [−1.00, +2.00] | no comparison slice | 1.048 | 0.220 | 0.093 | 0.157 | 0.290 | 0.273 | 0.293 | 0.287 | 0.290 |
+| MuSiQue MiniLM | +1.33 [+0.33, +2.67] | no comparison slice | 1.029 | 0.157 | 0.093 | 0.137 | 0.293 | 0.217 | 0.307 | 0.310 | 0.313 |
+
+(ce@5 per arm; every configuration's decision under the rule is "no
+useful gain"; every latency rule is met.) Other pre-listed contrasts
+worth recording, ce@5 unless stated: A7 − A4 is never positive with
+bge-m3 (−0.10 / −1.00 / −0.33) and is −2.80 [−5.00, −0.60] on
+HotpotQA/MiniLM; A8 − A4 is within noise everywhere except MuSiQue/MiniLM
+at ce@10, +7.00 [+3.00, +11.00]; A5 − A3 (hubmesh top-5 vs hybrid top-5,
+both unreranked) is positive in all six: +6.90, +4.40, +7.00, +4.80,
++11.67, +8.00; A5 − A1 (vs dense top-5) is positive in five and −3.20
+[−6.60, +0.00] on HotpotQA/bge-m3; A6 − A5 is −5.20 [−7.40, −3.10] on
+2Wiki/bge-m3 and positive (+2.0 to +24.6) elsewhere. MuSiQue by hops,
+A6 − A4 ce@5 (bge-m3 / MiniLM): 2-hop +0.00 / +1.32; 3-hop +0.96 /
++1.92; 4-hop +0.00 / +0.00 with every arm at 0.000 for 4-hop questions
+(four gold paragraphs in the top five).
+
+Diagnostics (pre-listed): questions with ≥ 2 seeds 47% (2Wiki), 63%
+(HotpotQA), 52% (MuSiQue); mean |hybrid30 ∩ hub20| 12.8–14.5; gold
+paragraphs without entities 0–0.7%; unresolved gold 0 everywhere; A8
+below 50 candidates in 493 / 28 / 15 / 6 / 21 / 4 questions (2Wiki bge,
+2Wiki MiniLM, HotpotQA bge, HotpotQA MiniLM, MuSiQue bge, MuSiQue
+MiniLM). Mechanism counts (pre-planned in the examination script):
+questions where hubmesh's top-20 held a gold paragraph absent from the
+hybrid top-30, and how many of those the reranker kept entirely in A6's
+top-5: 106 → 15, 81 → 22, 19 → 7, 15 → 7, 68 → 20, 54 → 18.
+
+Post-hoc diagnosis on the primary file (after the outcome was read; the
+decision table's "diagnose a specific suspected limitation" step;
+exploratory): the 109 contributed gold paragraphs were ranked by the
+cross-encoder within A6's 50 as 16 in ranks 1–5, 15 in 6–10, 30 in
+11–20, 48 beyond 20; 77 of them were absent from the entire hybrid
+top-50. Complete evidence present anywhere in the candidate list: A4
+0.572, A6 0.612, A7 0.624, A8 0.645 (mean gold recall of the lists
+0.806 / 0.832 / 0.837 / 0.848). By question type, ce@5 A4 / A6 / A5:
+compositional (n=407) 0.270 / 0.278 / 0.381; inference (n=119) 0.420 /
+0.420 / 0.521; comparison (n=236) 1.000 / 1.000 / 0.987;
+bridge-comparison (n=238) 0.017 / 0.017 / 0.021. A5 beats A4 on 88
+questions and loses on 33. These are observations that suggest
+hypotheses ("the cross-encoder ranks graph-contributed bridge evidence
+low"; "hubmesh's own ordering beats the cross-encoder on 2Wiki
+compositional/inference questions with bge-m3 but nowhere else"); each
+would need its own pre-registered test. They do not change the
+registered outcome.
+
+Consequence under the protocol's decision table ("no useful gain"): no
+default changes and no new arms; the engineering follow-up is to
+diagnose a specific suspected limitation or reconsider the proposition,
+and any narrower application needs separate evidence; the product line
+is that the proposition is weak and partner tasks decide.
+
 ## What was NOT done (deliberately)
 
 - No competitor lane was run (LightRAG pilot awaits the Moonshot
