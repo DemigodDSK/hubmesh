@@ -165,8 +165,43 @@ class QdrantStore:
             metadata=meta,
         )
 
-    def get_many(self, doc_ids: list[str]) -> list[Document]:
-        return [self.get(i) for i in doc_ids]
+    def get_many(self, doc_ids: list[str], batch_size: int = 256) -> list[Document]:
+        """One `retrieve` round trip per `batch_size` ids instead of one per
+        id. Measured against a local Qdrant 1.20 server on the HotpotQA
+        N=500 pilot, the per-id loop cost ~100 ms per query for the 50
+        bodies the Planner fetches (benchmarks/run_qdrant_parity.py).
+        Order follows `doc_ids`; an id absent from the collection raises
+        KeyError exactly like `get`, so the Planner's per-id fallback for
+        stale ids keeps working."""
+        if not doc_ids:
+            return []
+        by_id: dict[str, Document] = {}
+        for s in range(0, len(doc_ids), batch_size):
+            chunk = doc_ids[s:s + batch_size]
+            recs = self._client.retrieve(
+                collection_name=self.collection,
+                ids=[_stable_id(i) for i in chunk],
+                with_payload=True, with_vectors=True,
+            )
+            for rec in recs:
+                payload = rec.payload or {}
+                hid = payload.get("hubmesh_id")
+                if hid is None:
+                    continue
+                vec = np.asarray(rec.vector, dtype=np.float32) if rec.vector is not None else None
+                if vec is not None and self._cache_vectors:
+                    self._vec_cache[hid] = vec
+                by_id[hid] = Document(
+                    id=hid, text=payload.get("text", ""), vector=vec,
+                    metadata={k.removeprefix("meta_"): v for k, v in payload.items()
+                              if k.startswith("meta_")},
+                )
+        out: list[Document] = []
+        for i in doc_ids:
+            if i not in by_id:
+                raise KeyError(i)
+            out.append(by_id[i])
+        return out
 
     def neighbors(self, doc_id: str, k: int) -> list[str]:
         cached = self._neighbor_cache.get(doc_id)

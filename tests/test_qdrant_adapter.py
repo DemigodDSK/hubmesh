@@ -41,6 +41,24 @@ def test_qdrant_store_basic():
     assert "t0_d0" not in nbrs
 
 
+def test_qdrant_get_many_is_batched_ordered_and_strict():
+    docs, _ = make_corpus()
+    store = QdrantStore.from_documents(docs)
+    store._vec_cache.clear()                      # behave like a fresh process
+    want = ["t3_d2", "t0_d0", "t1_d7", "t2_d14"]
+    got = store.get_many(want)
+    assert [d.id for d in got] == want            # order follows the request
+    assert got[0].text == "Doc topic=3 idx=2" and got[0].metadata == {"topic": 3}
+    assert all(d.vector is not None and d.vector.shape == (32,) for d in got)
+    assert set(want) <= set(store._vec_cache)     # fetched vectors are cached
+    assert store.get_many([]) == []
+    with pytest.raises(KeyError):                  # same contract as get()
+        store.get_many(["t0_d0", "does-not-exist"])
+    # one round trip per 256 ids: a batch larger than that still returns everything, in order
+    all_ids = [d.id for d in docs]
+    assert [d.id for d in store.get_many(all_ids, batch_size=7)] == all_ids
+
+
 def test_qdrant_store_search_and_planner():
     docs, centroids = make_corpus()
     store = QdrantStore.from_documents(docs)
