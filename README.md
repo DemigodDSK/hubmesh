@@ -242,6 +242,9 @@ Each layer is independently testable and replaceable. Adapters wrap your
 existing vector DB so you don't have to migrate — note that KG mode
 scores every document (vectors are gathered once per store version and
 cached) and uses the store's ANN index only for the seed fallback.
+The full design, including the store contract, persistence, the serving
+security model and measured scaling limits, is in
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Benchmarks
 
