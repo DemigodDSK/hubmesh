@@ -6,6 +6,24 @@ project follows [SemVer](https://semver.org/) starting from 0.1.0.
 
 ## [Unreleased]
 
+### Changed
+- **`QdrantStore.get_many` is batched** — one `retrieve` round trip per
+  256 ids instead of one per id. Against a local Qdrant 1.20 server the
+  Planner's 50-body fetch dropped from ~106 ms to ~14 ms per query
+  (hubmesh over Qdrant: median 217 ms vs 305 ms as shipped; in-memory
+  202 ms on the same corpus). Order follows the request; a missing id
+  raises `KeyError` as `get` does.
+
+### Added
+- `benchmarks/run_qdrant_parity.py` and
+  `benchmarks/results/qdrant_parity_hotpotqa_n500.json`: the first hubmesh
+  measurement over a real vector-database server. HotpotQA N=500 pilot,
+  same embeddings and KG on both stores: hubmesh's top-10 identical for
+  500/500 questions, recall equal to the in-memory result to the third
+  decimal, write invalidation verified, cold-attach cost recorded (one
+  vector round trip per document, 2.4 ms each on localhost). The
+  as-shipped measurement is kept as `…_asshipped_c4f22ea.json`.
+
 ## [0.4.2] — 2026-09-15
 
 Maintenance release carrying every fix from the September 2026 external

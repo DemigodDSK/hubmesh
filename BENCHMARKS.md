@@ -191,6 +191,42 @@ for the four configurations examined — in
 `complementarity_run1_2026-09-16_transcribed.md`. Details and the review
 history: `docs/REVIEW_BATCHES.md`.
 
+**First run over a real vector database — Qdrant 1.20 server, parity and
+latency (2026-10-29).** Every number above was measured on the in-memory
+store. `benchmarks/run_qdrant_parity.py` runs the HotpotQA N=500 pilot
+(4,943 paragraphs, body-only, MiniLM, one shared entity KG of 32k nodes)
+through hubmesh over a Qdrant server in Docker and over the in-memory
+store, same embeddings, and compares per query
+(`benchmarks/results/qdrant_parity_hotpotqa_n500.json`, manifest at
+`cf77ca9`, clean tree):
+
+| | in-memory | Qdrant 1.20 (local Docker) |
+|---|---:|---:|
+| hubmesh top-10 identical to the other store | 500 / 500 | 500 / 500 |
+| hubmesh recall @2 / @5 / @10 | 0.570 / 0.764 / 0.871 | 0.570 / 0.764 / 0.871 |
+| naive top-10 recall @2 / @5 / @10 | 0.578 / 0.740 / 0.819 (exact) | 0.578 / 0.740 / 0.819 (HNSW) |
+| hubmesh latency mean / median / p95 | 176 / 202 / 274 ms | 190 / 217 / 291 ms |
+| naive top-10 latency median | 0.4 ms | 6.9 ms |
+| ingest of 4,943 vectors | — | 2.5 s |
+| cold attach to an existing collection (every vector once) | — | 11.8 s (2.4 ms per document) |
+| 50 bodies for one query: batched vs per-id | — | 14 ms vs 106 ms |
+
+Read: the ranking is bit-identical, as the design predicts (hubmesh ranks
+on its own vector matrix; the database supplies vectors and bodies), and
+recall equals `hotpotqa_n500_kg_body.json` to the third decimal. The
+as-shipped adapter fetched bodies one id at a time, which cost about
+100 ms per query (`…_asshipped_c4f22ea.json`); `QdrantStore.get_many` is
+batched since `cf77ca9`, leaving ~15 ms of per-query overhead on a local
+server. The remaining operational cost is the cold attach: a fresh
+process pulls each vector in its own round trip, so 66k documents would
+take minutes against a remote server before the first query — batching
+that pull is the next adapter change if a deployment needs it. Scope:
+one machine, Docker on the same host, one corpus size; a remote server
+adds network latency per round trip, and the planner's own cost on this
+32k-node graph (~200 ms per query, convergence on) dominates either way.
+Latency here is not comparable with the 22 ms figure below, which was a
+7k-node graph without the convergence term.
+
 ---
 
 ## TL;DR (historical — v0.1.1 measurements, body-only, MiniLM)

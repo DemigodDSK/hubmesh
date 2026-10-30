@@ -553,6 +553,54 @@ diagnose a specific suspected limitation or reconsider the proposition,
 and any narrower application needs separate evidence; the product line
 is that the proposition is weak and partner tasks decide.
 
+### First real vector-database run: Qdrant parity (2026-10-29)
+
+Prompted by a prospect that runs Qdrant. Until this run the Qdrant
+adapter had only been exercised in Qdrant's embedded `:memory:` mode on a
+few dozen synthetic documents; no hubmesh number had ever been measured
+against a server.
+
+Setup: Qdrant 1.20.0 in Docker on the development Mac, `qdrant-client`
+1.17.1, HotpotQA N=500 seed 0 (4,943 paragraphs, body-only, MiniLM on
+CPU — Metal ran out of memory next to Docker's 4 GB VM), one entity KG
+shared by both stores, `benchmarks/run_qdrant_parity.py`, run from a
+clean worktree.
+
+Findings (`qdrant_parity_hotpotqa_n500.json`, manifest `cf77ca9`):
+
+- **Parity:** hubmesh's top-10 identical for 500/500 questions between
+  the in-memory store and Qdrant; the planner's vector matrix pulled from
+  Qdrant matched the in-memory one exactly (max |Δ| 0.0); recall
+  0.570 / 0.764 / 0.871 on both, equal to `hotpotqa_n500_kg_body.json`.
+  Naive top-10 via Qdrant's HNSW matched exact cosine on 500/500 here and
+  499/500 in the as-shipped run; same recall either way.
+- **Latency:** hubmesh 176 / 202 / 274 ms (mean / median / p95) in
+  memory vs 190 / 217 / 291 ms over Qdrant after the fix below; the
+  as-shipped adapter measured 277 / 305 / 373 ms
+  (`qdrant_parity_hotpotqa_n500_asshipped_c4f22ea.json`), i.e. ~100 ms
+  per query spent fetching the 50 candidate bodies one id at a time.
+- **Fix in `cf77ca9`:** `QdrantStore.get_many` issues one `retrieve` per
+  256 ids; order follows the request, a missing id still raises
+  `KeyError` so the Planner's per-id fallback for stale ids is unchanged;
+  50 bodies now take 14 ms instead of 106 ms. Test added; 211 pass.
+- **Cold attach:** a fresh adapter on the existing collection lists ids in
+  0.11 s and then needs one round trip per document for the planner's
+  vector matrix: 11.8 s for 4,943 vectors (2.4 ms each) on localhost.
+  That is the remaining operational cost for real deployments and scales
+  linearly with the corpus; batching the vector pull is the next change
+  if someone attaches to a large remote collection.
+- **Writes:** an upsert bumps `mutation_counter` (2 → 4, before/after
+  batches) and the planner rebuilds its matrix on the next query
+  (10 ms from the warm cache); vectors are cached only after the server
+  confirms the batch.
+
+Not measured: a remote server (network latency multiplies every round
+trip above), corpora beyond 4,943 documents, concurrent writers, Chroma.
+The "warm-up 0.01 s" the first version of the script reported was an
+artifact — the adapter that ingested the corpus already held every
+vector — and was replaced by the cold-attach measurement before anything
+was committed.
+
 ## What was NOT done (deliberately)
 
 - No competitor lane was run (LightRAG pilot awaits the Moonshot
